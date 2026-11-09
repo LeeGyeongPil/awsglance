@@ -1,0 +1,13 @@
+# Changelog
+
+## 0.1.0 — 2026-11-09
+- 첫 릴리스: 읽기 전용 AWS 계정 상황판(개요·변경 이력·문제·자원·연결 화면).
+- 허용 목록 24개 작업만 호출하는 읽기 전용 가드와 최소 IAM 정책(`awsglance policy`).
+- 자원 목록·CloudTrail·보안 서비스 수집, 저장 전 비밀값 가림, 스냅샷 diff.
+- 규칙 12개, 사람/자동 분류, 발견 사항 수명주기(숨김·닫기·재발).
+- 연습(mock) 모드 `--demo`, 자체 점검 `--selftest`.
+- `awsglance export [--demo] --out DIR`: 서버 없이 `file://` 로 열리는 한 파일짜리 `index.html`(읽기 전용 사본, `#/changes?tab=human` 같은 해시 경로).
+- `--profile` 이 없는 프로필이면 사용 가능한 프로필을 안내하고 종료 코드 2 로 끝납니다.
+- `--port` 는 1~65535 만 받고, 이미 쓰는 포트면 `--port` 로 다른 포트를 고르라고 안내합니다.
+- suppress/close 요청의 잘못된 JSON 본문은 400 `invalid_body` 로 응답합니다.
+- 자원 화면의 관련 CloudTrail 은 자원 ID·ARN 이 정확히 같은 이벤트만 연결합니다(이름 부분 일치 없음).
