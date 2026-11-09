@@ -1,0 +1,58 @@
+[project]
+name = "awsglance"
+version = "0.1.0"
+description = "Read-only, single-process dashboard for one AWS account: who changed what, risky settings, and what to check now."
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.12"
+authors = [{ name = "LeeGyeongPil" }]
+keywords = ["aws", "cloudtrail", "dashboard", "security", "read-only", "boto3"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Web Environment",
+    "Intended Audience :: Developers",
+    "Intended Audience :: System Administrators",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: System :: Monitoring",
+]
+dependencies = [
+    "boto3==1.43.126",
+    "botocore==1.43.126",
+    "fastapi==0.162.2",
+    "uvicorn==0.54.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/LeeGyeongPil/awsglance"
+Issues = "https://github.com/LeeGyeongPil/awsglance/issues"
+
+[project.scripts]
+awsglance = "awsglance.cli:main"
+
+[dependency-groups]
+dev = [
+    "pytest==9.2.0",
+    "moto[ec2,s3,iam,sts,secretsmanager,ssm,s3control]==5.2.5",
+    "httpx==0.28.1",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/awsglance"]
+# 빌드된 SPA 와 예제 계정 JSON 을 wheel 에 넣는다(사용자는 Node 불필요)
+artifacts = ["src/awsglance/static/**", "src/awsglance/demo/fixtures/*.json", "src/awsglance/aws/allowlist.json"]
+
+[tool.hatch.build.targets.sdist]
+include = ["src/awsglance", "tests", "iam-policy.json", "README.md", "LICENSE"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-p no:cacheprovider"
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore:Using `httpx` with `starlette.testclient` is deprecated:Warning",
+]

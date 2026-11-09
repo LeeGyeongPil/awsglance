@@ -1,0 +1,242 @@
+{
+  "_comment": "가상 계정 123456789012 의 Describe/List 원본 응답. '_only' 가 before 인 항목은 첫 스냅샷에만, after 인 항목은 두 번째 스냅샷에만 있다. 일부러 넣은 실수: 22·3389 포트 전 세계 개방 SG, 공개 차단 없는 버킷, 120일 된 액세스 키, 공개 RDS, 인증 없는 함수 URL, 보존 기간 없는 로그 그룹. 환경 변수 값은 '저장 전 가림'을 보여 주려고 넣은 가짜 값이다. 연결 주체는 ViewOnly 역할이라 계정 수준 S3 공개 차단 조회(s3:GetAccountPublicAccessBlock)가 거부된다 — 권한 점검 표의 '거부'와 보안 태세의 '권한 없음'(꺼짐으로 단정하지 않음)을 보여 주려는 설정이다.",
+  "services": {
+    "sts": {
+      "*": {
+        "GetCallerIdentity": {
+          "Account": "123456789012",
+          "Arn": "arn:aws:sts::123456789012:assumed-role/AWSReservedSSO_ViewOnly_0demo/demo-viewer",
+          "UserId": "AROADEMOEXAMPLE0VIEW:demo-viewer"
+        }
+      }
+    },
+    "ec2": {
+      "ap-northeast-2": {
+        "DescribeRegions": {"Regions": [{"RegionName": "ap-northeast-2"}, {"RegionName": "us-east-1"}]},
+        "DescribeInstances": {"Reservations": [{"Instances": [
+          {"InstanceId": "i-0demoweb10000001", "InstanceType": "t3.small", "State": {"Name": "running"},
+           "PublicIpAddress": "203.0.113.10", "VpcId": "vpc-0demomain000001", "SubnetId": "subnet-0demopuba00001",
+           "SecurityGroups": [{"GroupId": "sg-0demoweb0000002"}], "LaunchTime": "@ago:40d",
+           "Tags": [{"Key": "Name", "Value": "demo-web-1"}, {"Key": "Service", "Value": "web"}]},
+          {"_only": "before", "InstanceId": "i-0demoweb20000002", "InstanceType": "t3.small", "State": {"Name": "running"},
+           "PublicIpAddress": "203.0.113.11", "VpcId": "vpc-0demomain000001", "SubnetId": "subnet-0demopubc00002",
+           "SecurityGroups": [{"GroupId": "sg-0demoweb0000002"}], "LaunchTime": "@ago:40d",
+           "Tags": [{"Key": "Name", "Value": "demo-web-2"}, {"Key": "Service", "Value": "web"}]},
+          {"_only": "after", "InstanceId": "i-0demoweb20000002", "InstanceType": "t3.small", "State": {"Name": "stopped"},
+           "VpcId": "vpc-0demomain000001", "SubnetId": "subnet-0demopubc00002",
+           "SecurityGroups": [{"GroupId": "sg-0demoweb0000002"}], "LaunchTime": "@ago:40d",
+           "Tags": [{"Key": "Name", "Value": "demo-web-2"}, {"Key": "Service", "Value": "web"}]},
+          {"InstanceId": "i-0demobatch000003", "InstanceType": "c6g.large", "State": {"Name": "running"},
+           "VpcId": "vpc-0demomain000001", "SubnetId": "subnet-0demoprva00003",
+           "SecurityGroups": [{"GroupId": "sg-0demodb00000003"}], "LaunchTime": "@ago:11d",
+           "IamInstanceProfile": {"Arn": "arn:aws:iam::123456789012:instance-profile/demo-batch"},
+           "Tags": [{"Key": "Name", "Value": "demo-batch-1"}, {"Key": "Service", "Value": "batch"}]},
+          {"_only": "after", "InstanceId": "i-0demoworker00004", "InstanceType": "t3.medium", "State": {"Name": "running"},
+           "VpcId": "vpc-0demomain000001", "SubnetId": "subnet-0demoprvc00004",
+           "SecurityGroups": [{"GroupId": "sg-0demodb00000003"}], "LaunchTime": "@ago:10h",
+           "Tags": [{"Key": "Name", "Value": "demo-worker-1"}, {"Key": "Service", "Value": "batch"}]}
+        ]}]},
+        "DescribeVpcs": {"Vpcs": [
+          {"VpcId": "vpc-0demomain000001", "CidrBlock": "10.20.0.0/16", "IsDefault": false,
+           "Tags": [{"Key": "Name", "Value": "demo-main"}]},
+          {"VpcId": "vpc-0demodefault002", "CidrBlock": "172.31.0.0/16", "IsDefault": true}
+        ]},
+        "DescribeSubnets": {"Subnets": [
+          {"SubnetId": "subnet-0demopuba00001", "VpcId": "vpc-0demomain000001", "CidrBlock": "10.20.0.0/24",
+           "AvailabilityZone": "ap-northeast-2a", "MapPublicIpOnLaunch": true, "Tags": [{"Key": "Name", "Value": "demo-public-a"}]},
+          {"SubnetId": "subnet-0demopubc00002", "VpcId": "vpc-0demomain000001", "CidrBlock": "10.20.1.0/24",
+           "AvailabilityZone": "ap-northeast-2c", "MapPublicIpOnLaunch": true, "Tags": [{"Key": "Name", "Value": "demo-public-c"}]},
+          {"SubnetId": "subnet-0demoprva00003", "VpcId": "vpc-0demomain000001", "CidrBlock": "10.20.10.0/24",
+           "AvailabilityZone": "ap-northeast-2a", "Tags": [{"Key": "Name", "Value": "demo-private-a"}]},
+          {"SubnetId": "subnet-0demoprvc00004", "VpcId": "vpc-0demomain000001", "CidrBlock": "10.20.11.0/24",
+           "AvailabilityZone": "ap-northeast-2c", "Tags": [{"Key": "Name", "Value": "demo-private-c"}]}
+        ]},
+        "DescribeSecurityGroups": {"SecurityGroups": [
+          {"GroupId": "sg-0demodefault001", "GroupName": "default", "VpcId": "vpc-0demomain000001",
+           "Description": "default VPC security group",
+           "IpPermissions": [{"IpProtocol": "-1", "IpRanges": [{"CidrIp": "10.20.0.0/16"}]}],
+           "IpPermissionsEgress": [{"IpProtocol": "-1", "IpRanges": [{"CidrIp": "0.0.0.0/0"}]}]},
+          {"_only": "before", "GroupId": "sg-0demoweb0000002", "GroupName": "demo-web", "VpcId": "vpc-0demomain000001",
+           "Description": "web servers",
+           "IpPermissions": [
+             {"IpProtocol": "tcp", "FromPort": 80, "ToPort": 80, "IpRanges": [{"CidrIp": "0.0.0.0/0"}]},
+             {"IpProtocol": "tcp", "FromPort": 443, "ToPort": 443, "IpRanges": [{"CidrIp": "0.0.0.0/0"}]}],
+           "IpPermissionsEgress": [{"IpProtocol": "-1", "IpRanges": [{"CidrIp": "0.0.0.0/0"}]}],
+           "Tags": [{"Key": "Service", "Value": "web"}]},
+          {"_only": "after", "GroupId": "sg-0demoweb0000002", "GroupName": "demo-web", "VpcId": "vpc-0demomain000001",
+           "Description": "web servers",
+           "IpPermissions": [
+             {"IpProtocol": "tcp", "FromPort": 80, "ToPort": 80, "IpRanges": [{"CidrIp": "0.0.0.0/0"}]},
+             {"IpProtocol": "tcp", "FromPort": 443, "ToPort": 443, "IpRanges": [{"CidrIp": "0.0.0.0/0"}]},
+             {"IpProtocol": "tcp", "FromPort": 22, "ToPort": 22, "IpRanges": [{"CidrIp": "0.0.0.0/0"}]}],
+           "IpPermissionsEgress": [{"IpProtocol": "-1", "IpRanges": [{"CidrIp": "0.0.0.0/0"}]}],
+           "Tags": [{"Key": "Service", "Value": "web"}]},
+          {"GroupId": "sg-0demodb00000003", "GroupName": "demo-db", "VpcId": "vpc-0demomain000001",
+           "Description": "database access from web",
+           "IpPermissions": [{"IpProtocol": "tcp", "FromPort": 5432, "ToPort": 5432,
+                              "UserIdGroupPairs": [{"GroupId": "sg-0demoweb0000002"}]}],
+           "IpPermissionsEgress": [{"IpProtocol": "-1", "IpRanges": [{"CidrIp": "0.0.0.0/0"}]}]},
+          {"GroupId": "sg-0demoalb0000004", "GroupName": "demo-alb", "VpcId": "vpc-0demomain000001",
+           "Description": "public load balancer",
+           "IpPermissions": [{"IpProtocol": "tcp", "FromPort": 443, "ToPort": 443,
+                              "IpRanges": [{"CidrIp": "0.0.0.0/0"}], "Ipv6Ranges": [{"CidrIpv6": "::/0"}]}],
+           "IpPermissionsEgress": [{"IpProtocol": "-1", "IpRanges": [{"CidrIp": "0.0.0.0/0"}]}]},
+          {"_only": "after", "GroupId": "sg-0demoadmin00005", "GroupName": "demo-admin", "VpcId": "vpc-0demomain000001",
+           "Description": "temporary admin access",
+           "IpPermissions": [{"IpProtocol": "tcp", "FromPort": 3389, "ToPort": 3389, "IpRanges": [{"CidrIp": "0.0.0.0/0"}]}],
+           "IpPermissionsEgress": [{"IpProtocol": "-1", "IpRanges": [{"CidrIp": "0.0.0.0/0"}]}]}
+        ]}
+      },
+      "us-east-1": {
+        "DescribeRegions": {"Regions": [{"RegionName": "ap-northeast-2"}, {"RegionName": "us-east-1"}]},
+        "DescribeVpcs": {"Vpcs": [{"VpcId": "vpc-0demouse1def001", "CidrBlock": "172.31.0.0/16", "IsDefault": true}]},
+        "DescribeSubnets": {"Subnets": [
+          {"SubnetId": "subnet-0demouse1a0001", "VpcId": "vpc-0demouse1def001", "CidrBlock": "172.31.0.0/20",
+           "AvailabilityZone": "us-east-1a", "MapPublicIpOnLaunch": true},
+          {"SubnetId": "subnet-0demouse1b0002", "VpcId": "vpc-0demouse1def001", "CidrBlock": "172.31.16.0/20",
+           "AvailabilityZone": "us-east-1b", "MapPublicIpOnLaunch": true}
+        ]},
+        "DescribeSecurityGroups": {"SecurityGroups": [
+          {"GroupId": "sg-0demouse1def001", "GroupName": "default", "VpcId": "vpc-0demouse1def001",
+           "Description": "default VPC security group",
+           "IpPermissions": [{"IpProtocol": "-1", "UserIdGroupPairs": [{"GroupId": "sg-0demouse1def001"}]}],
+           "IpPermissionsEgress": [{"IpProtocol": "-1", "IpRanges": [{"CidrIp": "0.0.0.0/0"}]}]}
+        ]}
+      }
+    },
+    "rds": {
+      "ap-northeast-2": {
+        "DescribeDBInstances": {"DBInstances": [
+          {"DBInstanceIdentifier": "demo-db", "Engine": "postgres", "EngineVersion": "16.4", "DBInstanceStatus": "available",
+           "DBInstanceClass": "db.t4g.medium", "PubliclyAccessible": false, "StorageEncrypted": true, "MultiAZ": true,
+           "TagList": [{"Key": "Service", "Value": "web"}]},
+          {"DBInstanceIdentifier": "demo-analytics", "Engine": "mysql", "EngineVersion": "8.0.39", "DBInstanceStatus": "available",
+           "DBInstanceClass": "db.t4g.small", "PubliclyAccessible": true, "StorageEncrypted": false, "MultiAZ": false,
+           "TagList": [{"Key": "Service", "Value": "analytics"}]}
+        ]}
+      }
+    },
+    "lambda": {
+      "ap-northeast-2": {
+        "ListFunctions": {"Functions": [
+          {"_only": "before", "FunctionName": "demo-thumbnail", "Runtime": "python3.12", "MemorySize": 512, "Timeout": 30,
+           "Role": "arn:aws:iam::123456789012:role/demo-lambda-exec", "LastModified": "2026-10-01T09:00:00.000+0000",
+           "Environment": {"Variables": {"DB_HOST": "demo-db.internal", "DB_PASSWORD": "demo-fake-password-1234"}}},
+          {"_only": "after", "FunctionName": "demo-thumbnail", "Runtime": "python3.12", "MemorySize": 512, "Timeout": 30,
+           "Role": "arn:aws:iam::123456789012:role/demo-lambda-exec", "LastModified": "2026-11-01T09:00:00.000+0000",
+           "Environment": {"Variables": {"DB_HOST": "demo-db.internal", "DB_PASSWORD": "demo-fake-password-1234",
+                                         "API_KEY": "sk-demoFAKEkey0000000000000000"}}},
+          {"_only": "before", "FunctionName": "demo-webhook", "Runtime": "nodejs20.x", "MemorySize": 256, "Timeout": 10,
+           "Role": "arn:aws:iam::123456789012:role/demo-lambda-exec", "LastModified": "2026-10-20T09:00:00.000+0000"},
+          {"_only": "after", "FunctionName": "demo-webhook", "Runtime": "nodejs20.x", "MemorySize": 256, "Timeout": 10,
+           "Role": "arn:aws:iam::123456789012:role/demo-lambda-exec", "LastModified": "2026-11-08T21:00:00.000+0000"},
+          {"FunctionName": "demo-cron", "Runtime": "python3.12", "MemorySize": 128, "Timeout": 60,
+           "Role": "arn:aws:iam::123456789012:role/demo-lambda-exec", "LastModified": "2026-09-15T09:00:00.000+0000"}
+        ]},
+        "ListFunctionUrlConfigs": {"_by": "FunctionName", "default": {"FunctionUrlConfigs": []}, "values": {
+          "demo-webhook": {"FunctionUrlConfigs": [{"FunctionUrl": "https://demo-webhook.lambda-url.ap-northeast-2.on.aws/", "AuthType": "NONE"}]}
+        }}
+      },
+      "us-east-1": {
+        "ListFunctions": {"Functions": [
+          {"FunctionName": "demo-edge-auth", "Runtime": "nodejs20.x", "MemorySize": 128, "Timeout": 5,
+           "Role": "arn:aws:iam::123456789012:role/demo-lambda-exec", "LastModified": "2026-08-01T09:00:00.000+0000"}
+        ]},
+        "ListFunctionUrlConfigs": {"FunctionUrlConfigs": []}
+      }
+    },
+    "elbv2": {
+      "ap-northeast-2": {
+        "DescribeLoadBalancers": {"LoadBalancers": [
+          {"LoadBalancerName": "demo-alb", "Type": "application", "Scheme": "internet-facing", "State": {"Code": "active"},
+           "DNSName": "demo-alb-0000000000.ap-northeast-2.elb.amazonaws.com", "SecurityGroups": ["sg-0demoalb0000004"]}
+        ]}
+      }
+    },
+    "logs": {
+      "ap-northeast-2": {
+        "DescribeLogGroups": {"logGroups": [
+          {"logGroupName": "/aws/lambda/demo-thumbnail", "retentionInDays": 30, "storedBytes": 52428800},
+          {"logGroupName": "/aws/lambda/demo-webhook", "storedBytes": 1073741824},
+          {"_only": "before", "logGroupName": "/aws/lambda/demo-cron", "storedBytes": 10485760},
+          {"_only": "after", "logGroupName": "/aws/lambda/demo-cron", "retentionInDays": 14, "storedBytes": 10485760},
+          {"logGroupName": "/demo/app", "retentionInDays": 90, "storedBytes": 209715200}
+        ]}
+      },
+      "us-east-1": {
+        "DescribeLogGroups": {"logGroups": [
+          {"logGroupName": "/aws/lambda/demo-edge-auth", "retentionInDays": 7, "storedBytes": 1048576}
+        ]}
+      }
+    },
+    "s3": {
+      "us-east-1": {
+        "ListBuckets": {"Buckets": [
+          {"Name": "demo-app-assets", "CreationDate": "@ago:300d", "BucketRegion": "ap-northeast-2"},
+          {"Name": "demo-logs", "CreationDate": "@ago:300d", "BucketRegion": "ap-northeast-2"},
+          {"Name": "demo-public-site", "CreationDate": "@ago:90d", "BucketRegion": "ap-northeast-2"},
+          {"_only": "before", "Name": "demo-tmp-export", "CreationDate": "@ago:20d", "BucketRegion": "ap-northeast-2"},
+          {"_only": "after", "Name": "demo-backups", "CreationDate": "@ago:20h", "BucketRegion": "ap-northeast-2"}
+        ]},
+        "GetPublicAccessBlock": {"_by": "Bucket",
+          "default": {"PublicAccessBlockConfiguration": {"BlockPublicAcls": true, "IgnorePublicAcls": true,
+                                                         "BlockPublicPolicy": true, "RestrictPublicBuckets": true}},
+          "values": {"demo-public-site": {"_error": "NoSuchPublicAccessBlockConfiguration"}}}
+      }
+    },
+    "s3control": {
+      "us-east-1": {
+        "GetPublicAccessBlock": {"_error": "AccessDenied"}
+      }
+    },
+    "iam": {
+      "us-east-1": {
+        "ListUsers": {"Users": [
+          {"UserName": "demo-ci-legacy", "Arn": "arn:aws:iam::123456789012:user/demo-ci-legacy", "CreateDate": "@ago:400d"},
+          {"UserName": "demo-bob", "Arn": "arn:aws:iam::123456789012:user/demo-bob", "CreateDate": "@ago:200d",
+           "PasswordLastUsed": "@ago:1d"}
+        ]},
+        "ListAccessKeys": {"_by": "UserName", "values": {
+          "demo-ci-legacy": {"AccessKeyMetadata": [{"UserName": "demo-ci-legacy", "AccessKeyId": "AKIAEXAMPLEDEMO00001",
+                                                    "Status": "Active", "CreateDate": "@ago:120d"}]},
+          "demo-bob": {"AccessKeyMetadata": [{"UserName": "demo-bob", "AccessKeyId": "AKIAEXAMPLEDEMO00002",
+                                              "Status": "Active", "CreateDate": "@ago:30d"}]}
+        }},
+        "ListRoles": {"Roles": [
+          {"RoleName": "AWSReservedSSO_AdminAccess_0demo", "Arn": "arn:aws:iam::123456789012:role/aws-reserved/sso.amazonaws.com/AWSReservedSSO_AdminAccess_0demo", "Path": "/aws-reserved/sso.amazonaws.com/", "CreateDate": "@ago:300d"},
+          {"RoleName": "AWSReservedSSO_ViewOnly_0demo", "Arn": "arn:aws:iam::123456789012:role/aws-reserved/sso.amazonaws.com/AWSReservedSSO_ViewOnly_0demo", "Path": "/aws-reserved/sso.amazonaws.com/", "CreateDate": "@ago:300d"},
+          {"RoleName": "AWSServiceRoleForECS", "Arn": "arn:aws:iam::123456789012:role/aws-service-role/ecs.amazonaws.com/AWSServiceRoleForECS", "Path": "/aws-service-role/ecs.amazonaws.com/", "CreateDate": "@ago:250d"},
+          {"RoleName": "AWSServiceRoleForAutoScaling", "Arn": "arn:aws:iam::123456789012:role/aws-service-role/autoscaling.amazonaws.com/AWSServiceRoleForAutoScaling", "Path": "/aws-service-role/autoscaling.amazonaws.com/", "CreateDate": "@ago:250d"},
+          {"RoleName": "github-actions-deploy", "Arn": "arn:aws:iam::123456789012:role/github-actions-deploy", "Path": "/", "CreateDate": "@ago:200d"},
+          {"RoleName": "demo-terraform", "Arn": "arn:aws:iam::123456789012:role/demo-terraform", "Path": "/", "CreateDate": "@ago:200d"},
+          {"RoleName": "demo-lambda-exec", "Arn": "arn:aws:iam::123456789012:role/demo-lambda-exec", "Path": "/", "CreateDate": "@ago:12d"},
+          {"RoleName": "demo-ops-admin", "Arn": "arn:aws:iam::123456789012:role/demo-ops-admin", "Path": "/", "CreateDate": "@ago:100d"}
+        ]}
+      }
+    },
+    "cloudtrail": {
+      "us-east-1": {
+        "DescribeTrails": {"trailList": [
+          {"Name": "demo-org-trail", "TrailARN": "arn:aws:cloudtrail:us-east-1:123456789012:trail/demo-org-trail",
+           "IsMultiRegionTrail": true, "HomeRegion": "us-east-1"}
+        ]},
+        "GetTrailStatus": {"IsLogging": true}
+      }
+    },
+    "guardduty": {
+      "ap-northeast-2": {"ListDetectors": {"DetectorIds": ["0demodetector000000000000000001"]}},
+      "us-east-1": {"ListDetectors": {"DetectorIds": []}}
+    },
+    "securityhub": {
+      "*": {"DescribeHub": {"_error": "InvalidAccessException"}}
+    },
+    "config": {
+      "ap-northeast-2": {"DescribeConfigurationRecorderStatus": {"ConfigurationRecordersStatus": [{"name": "default", "recording": true}]}},
+      "us-east-1": {"DescribeConfigurationRecorderStatus": {"ConfigurationRecordersStatus": []}}
+    },
+    "accessanalyzer": {
+      "ap-northeast-2": {"ListAnalyzers": {"analyzers": [{"name": "demo-analyzer", "status": "ACTIVE"}]}},
+      "us-east-1": {"ListAnalyzers": {"analyzers": []}}
+    }
+  }
+}

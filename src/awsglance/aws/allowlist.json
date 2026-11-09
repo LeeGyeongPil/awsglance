@@ -1,0 +1,57 @@
+{
+  "_comment": "awsglance 가 부를 수 있는 AWS 작업의 유일한 목록. 키는 botocore 서비스 이름, 값은 {API 작업 이름: IAM 작업 이름}. 접두사(Get* 등) 허용은 쓰지 않는다 — 한 줄씩 명시한다. 이 파일에서 읽기 전용 훅과 iam-policy.json 이 함께 만들어진다.",
+  "services": {
+    "sts": {
+      "GetCallerIdentity": "sts:GetCallerIdentity"
+    },
+    "ec2": {
+      "DescribeRegions": "ec2:DescribeRegions",
+      "DescribeInstances": "ec2:DescribeInstances",
+      "DescribeVpcs": "ec2:DescribeVpcs",
+      "DescribeSubnets": "ec2:DescribeSubnets",
+      "DescribeSecurityGroups": "ec2:DescribeSecurityGroups"
+    },
+    "s3": {
+      "ListBuckets": "s3:ListAllMyBuckets",
+      "GetPublicAccessBlock": "s3:GetBucketPublicAccessBlock"
+    },
+    "s3control": {
+      "GetPublicAccessBlock": "s3:GetAccountPublicAccessBlock"
+    },
+    "iam": {
+      "ListUsers": "iam:ListUsers",
+      "ListAccessKeys": "iam:ListAccessKeys",
+      "ListRoles": "iam:ListRoles"
+    },
+    "rds": {
+      "DescribeDBInstances": "rds:DescribeDBInstances"
+    },
+    "lambda": {
+      "ListFunctions": "lambda:ListFunctions",
+      "ListFunctionUrlConfigs": "lambda:ListFunctionUrlConfigs"
+    },
+    "elbv2": {
+      "DescribeLoadBalancers": "elasticloadbalancing:DescribeLoadBalancers"
+    },
+    "logs": {
+      "DescribeLogGroups": "logs:DescribeLogGroups"
+    },
+    "cloudtrail": {
+      "LookupEvents": "cloudtrail:LookupEvents",
+      "DescribeTrails": "cloudtrail:DescribeTrails",
+      "GetTrailStatus": "cloudtrail:GetTrailStatus"
+    },
+    "guardduty": {
+      "ListDetectors": "guardduty:ListDetectors"
+    },
+    "securityhub": {
+      "DescribeHub": "securityhub:DescribeHub"
+    },
+    "config": {
+      "DescribeConfigurationRecorderStatus": "config:DescribeConfigurationRecorderStatus"
+    },
+    "accessanalyzer": {
+      "ListAnalyzers": "access-analyzer:ListAnalyzers"
+    }
+  }
+}

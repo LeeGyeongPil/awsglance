@@ -1,0 +1,36 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "AwsglanceReadOnly",
+      "Effect": "Allow",
+      "Action": [
+        "access-analyzer:ListAnalyzers",
+        "cloudtrail:DescribeTrails",
+        "cloudtrail:GetTrailStatus",
+        "cloudtrail:LookupEvents",
+        "config:DescribeConfigurationRecorderStatus",
+        "ec2:DescribeInstances",
+        "ec2:DescribeRegions",
+        "ec2:DescribeSecurityGroups",
+        "ec2:DescribeSubnets",
+        "ec2:DescribeVpcs",
+        "elasticloadbalancing:DescribeLoadBalancers",
+        "guardduty:ListDetectors",
+        "iam:ListAccessKeys",
+        "iam:ListRoles",
+        "iam:ListUsers",
+        "lambda:ListFunctionUrlConfigs",
+        "lambda:ListFunctions",
+        "logs:DescribeLogGroups",
+        "rds:DescribeDBInstances",
+        "s3:GetAccountPublicAccessBlock",
+        "s3:GetBucketPublicAccessBlock",
+        "s3:ListAllMyBuckets",
+        "securityhub:DescribeHub",
+        "sts:GetCallerIdentity"
+      ],
+      "Resource": "*"
+    }
+  ]
+}

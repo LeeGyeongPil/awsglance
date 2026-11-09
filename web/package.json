@@ -1,0 +1,27 @@
+{
+  "name": "awsglance-web",
+  "private": true,
+  "version": "0.1.0",
+  "description": "React front-end for awsglance. The build output is committed to src/awsglance/static so users never need Node.",
+  "type": "module",
+  "engines": {
+    "node": ">=20.19"
+  },
+  "scripts": {
+    "dev": "vite",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "build": "tsc --noEmit -p tsconfig.json && vite build",
+    "test": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "6.2.1",
+    "typescript": "7.0.2",
+    "vite": "8.3.6"
+  }
+}
