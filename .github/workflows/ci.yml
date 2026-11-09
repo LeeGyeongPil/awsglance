@@ -1,0 +1,37 @@
+# 실제 AWS·자격증명 없이 전체 흐름을 검증한다(moto·Stubber·연습 mock 모드).
+name: ci
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: "17 3 * * 1"   # 매주 월요일 — 의존성·런타임이 바뀌어 깨지지 않았는지 정기 확인
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.3.3
+      - run: uv python install
+      - run: uv sync --locked
+      - run: uv run pytest -q
+      - name: practice-mode selftest (no credentials)
+        run: env -u AWS_PROFILE -u AWS_ACCESS_KEY_ID uv run awsglance --demo --selftest
+
+  frontend:
+    # 레포에 커밋된 빌드(src/awsglance/static)가 web/ 소스와 같은지 확인한다 — 사용자는 Node 없이 이 빌드를 쓴다
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+        working-directory: web
+      - run: npm run build
+        working-directory: web
+      - run: git diff --exit-code -- src/awsglance/static
