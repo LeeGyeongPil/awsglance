@@ -1,6 +1,6 @@
 # awsglance
 
-> **English summary** — awsglance is a read-only, single-process web dashboard for one AWS account: it collects resource lists, CloudTrail events and security-service status, then uses plain rules to show who changed what, risky settings, and what to check now. Meant for solo developers and small teams without a dedicated security or SRE person. Try it with no AWS credentials (practice mode with a fictional account; mock data, no AWS calls): `uv run awsglance --demo` from a clone now, or `uvx awsglance --demo` once the package is published to PyPI (not yet available at the time of this release).
+> **English summary** — awsglance is a read-only, single-process web dashboard for one AWS account: it collects resource lists, CloudTrail events and security-service status, then uses plain rules to show who changed what, risky settings, and what to check now. Meant for solo developers and small teams without a dedicated security or SRE person. Try it with no AWS credentials (practice mode with a fictional account; mock data, no AWS calls): `uvx awsglance --demo` (no install needed), or from a clone: `uv run awsglance --demo`.
 
 AWS 계정 하나의 "누가 무엇을 바꿨나 · 위험한 설정 · 지금 확인할 것"을 한 화면에 모아 보여 주는 읽기 전용 웹 상황판입니다. 콘솔 여러 화면(Event history, EC2, S3, IAM, 보안 서비스)을 오가며 손으로 확인하던 아침 점검을 줄여 줍니다. 코드로 강제한 읽기 전용이라 무엇도 바꾸지 못합니다.
 
@@ -17,7 +17,7 @@ Python 3.12 이상이 필요하고, 실행 도구는 [uv](https://docs.astral.sh
 
 ```bash
 curl -LsSf https://astral.sh/uv/install.sh | sh      # uv 설치(이미 있으면 생략)
-uvx awsglance --demo                                  # PyPI 에 올라간 뒤: 설치 없이 바로 실행
+uvx awsglance --demo                                  # 설치 없이 바로 실행
 # 또는 소스에서
 git clone https://github.com/LeeGyeongPil/awsglance && cd awsglance
 uv run awsglance --demo
