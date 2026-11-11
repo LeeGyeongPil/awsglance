@@ -15,12 +15,15 @@ import os
 import secrets
 import shutil
 import socket
+import sqlite3
 import sys
 import tempfile
 import threading
 import time
 import urllib.request
 import webbrowser
+from collections.abc import Iterator
+from contextlib import contextmanager
 from pathlib import Path
 
 from . import __version__
@@ -76,6 +79,18 @@ def parse_args(argv: list[str] | None) -> argparse.Namespace:
     return p.parse_args(argv)
 
 
+@contextmanager
+def _data_folder_errors(data_dir: Path) -> Iterator[None]:
+    """데이터 폴더·DB 를 만들거나 여는 중 나는 OS·SQLite 오류를 한 줄 안내 + 종료 코드 2 로 바꾼다."""
+    try:
+        yield
+    except (OSError, sqlite3.OperationalError) as exc:
+        reason = exc.strerror if isinstance(exc, OSError) and exc.strerror else str(exc)
+        print(f"Cannot create or open the data folder {data_dir}: {reason}. "
+              "Use --data-dir <folder> or set AWSGLANCE_DATA_DIR to a folder you can write to.", file=sys.stderr)
+        raise SystemExit(2) from None
+
+
 def _token_for(data_dir: Path) -> str:
     """비로컬 바인드용 토큰: 환경 변수 → 데이터 폴더의 token 파일(0600) → 새로 만들기."""
     env = os.environ.get("AWSGLANCE_TOKEN")
@@ -85,9 +100,10 @@ def _token_for(data_dir: Path) -> str:
     if path.exists():
         return path.read_text(encoding="utf-8").strip()
     token = secrets.token_urlsafe(24)
-    fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
-    with os.fdopen(fd, "w", encoding="utf-8") as f:
-        f.write(token + "\n")
+    with _data_folder_errors(data_dir):
+        fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            f.write(token + "\n")
     return token
 
 
@@ -98,9 +114,10 @@ def prepare_demo(data_dir: Path) -> Store:
     from .demo import load_demo
 
     demo_dir = data_dir / "demo"
-    if demo_dir.exists():
-        shutil.rmtree(demo_dir)
-    store = Store(demo_dir / "awsglance.db")
+    with _data_folder_errors(data_dir):
+        if demo_dir.exists():
+            shutil.rmtree(demo_dir)
+        store = Store(demo_dir / "awsglance.db")
     summary = load_demo(store)
     print(f"[demo] fictional account {summary['account']}: {summary['resources']} resources, "
           f"{summary['events']} CloudTrail events, {summary['changes']} resource changes "
@@ -146,10 +163,11 @@ def prepare_live(args, data_dir: Path, settings: Settings):
     # IAM·로그인 같은 전역 이벤트는 us-east-1 의 LookupEvents 에만 보인다 → CloudTrail 은 항상 포함
     trail_regions = sorted(set(regions) | {GLOBAL_REGION})
 
-    store = Store(data_dir / "awsglance.db")
-    store.set_meta("mode", "live")
-    store.set_meta("identity", who)
-    store.set_meta("regions", regions)
+    with _data_folder_errors(data_dir):
+        store = Store(data_dir / "awsglance.db")
+        store.set_meta("mode", "live")
+        store.set_meta("identity", who)
+        store.set_meta("regions", regions)
     print(f"Connected: account {who['account']} as {who['arn']}", flush=True)
     print(f"Regions: {', '.join(regions)} — checking permissions…", flush=True)
     perms = check_permissions(session, regions[0], who["account"])
@@ -245,7 +263,8 @@ def run_export(args) -> int:
                 print(f"No collected data at {db}. Run awsglance --profile <name> first and let it collect, "
                       "or try: awsglance export --demo", file=sys.stderr)
                 return 2
-            store = Store(db)
+            with _data_folder_errors(data_dir):
+                store = Store(db)
             try:
                 target = export_static(store, args.out)
             finally:
@@ -280,8 +299,9 @@ def main(argv: list[str] | None = None) -> int:
     if args.selftest and args.data_dir is None:
         temp_dir = tempfile.mkdtemp(prefix="awsglance-selftest-")  # 자체 점검은 사용자 데이터 폴더를 건드리지 않는다
     data_dir = Path(temp_dir or args.data_dir or default_data_dir()).expanduser()
-    data_dir.mkdir(parents=True, exist_ok=True)
-    os.chmod(data_dir, 0o700)
+    with _data_folder_errors(data_dir):
+        data_dir.mkdir(parents=True, exist_ok=True)
+        os.chmod(data_dir, 0o700)
     settings = load(data_dir)
 
     scheduler = session = None

@@ -180,3 +180,68 @@ def test_bad_post_bodies_are_400_not_500(demo_store, path, body):
     with TestClient(create_app(demo_store), base_url=LOCAL) as c:
         r = c.post(f"/api/findings/{fid}/{path}", content=body, headers={"content-type": "application/json"})
     assert r.status_code == 400 and r.json()["detail"] == "invalid_body"
+
+
+# ---- data folder errors: one-line hint + exit code 2 ------------------------------
+
+import os  # noqa: E402
+import sqlite3  # noqa: E402
+
+
+def _assert_data_folder_hint(capsys, code, path):
+    err = capsys.readouterr().err
+    assert code == 2
+    assert "--data-dir" in err and "AWSGLANCE_DATA_DIR" in err and str(path) in err
+    assert "Traceback" not in err
+
+
+def _exit_code(argv):
+    try:
+        return main(argv)
+    except SystemExit as exc:
+        return exc.code
+
+
+@pytest.fixture
+def readonly_parent(tmp_path):
+    if os.geteuid() == 0:
+        pytest.skip("permission checks are bypassed for root")
+    ro = tmp_path / "ro"
+    ro.mkdir()
+    ro.chmod(0o500)
+    yield ro
+    ro.chmod(0o700)  # let tmp_path cleanup work
+
+
+def test_demo_with_unwritable_parent_gives_hint(readonly_parent, capsys):
+    target = readonly_parent / "d"
+    code = _exit_code(["--demo", "--no-browser", "--data-dir", str(target)])
+    _assert_data_folder_hint(capsys, code, target)
+
+
+def test_data_dir_is_a_file_gives_hint(tmp_path, capsys):
+    afile = tmp_path / "afile"
+    afile.write_text("x")
+    code = _exit_code(["--demo", "--no-browser", "--data-dir", str(afile)])
+    _assert_data_folder_hint(capsys, code, afile)
+
+
+def test_unknown_profile_with_unwritable_folder_reports_folder_first(readonly_parent, capsys):
+    target = readonly_parent / "d"
+    code = _exit_code(["--profile", "nosuchprof", "--no-browser", "--data-dir", str(target)])
+    _assert_data_folder_hint(capsys, code, target)
+
+
+def test_export_with_readonly_db_gives_hint(tmp_path, capsys):
+    if os.geteuid() == 0:
+        pytest.skip("permission checks are bypassed for root")
+    data = tmp_path / "data"
+    data.mkdir()
+    db = data / "awsglance.db"
+    sqlite3.connect(db).close()  # empty DB file
+    db.chmod(0o400)
+    try:
+        code = _exit_code(["export", "--data-dir", str(data), "--out", str(tmp_path / "out")])
+    finally:
+        db.chmod(0o600)
+    _assert_data_folder_hint(capsys, code, data)
