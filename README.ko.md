@@ -30,7 +30,7 @@ uv run awsglance --demo --no-browser --port 8742
 ```
 ```
 [demo] fictional account 123456789012: 47 resources, 26 CloudTrail events, 8 resource changes (practice mode, mock data — no AWS calls)
-awsglance 0.1.3 — open http://127.0.0.1:8742/  (Ctrl+C to stop)
+awsglance 0.1.4 — open http://127.0.0.1:8742/  (Ctrl+C to stop)
 ```
 브라우저에서 출력된 주소를 열면 맨 위에 보인 개요 화면이 나타납니다. `--no-browser` 를 빼면 브라우저가 자동으로 열립니다.
 
@@ -180,6 +180,8 @@ flowchart LR
 - 실제 계정에서의 동작은 CI 로 검증하지 못합니다. 연결 화면의 권한 점검 표와 수집 이력으로 직접 확인하세요.
 - 관련 CloudTrail 은 놓치는 이벤트가 있을 수 있습니다(예: Lambda 요청이 함수 ARN 으로 온 경우, 이름만 저장한 로드 밸런서). 오연결을 피하려는 선택입니다.
 - 연습 모드의 예제 계정은 가짜입니다.
+- `--data-dir` 로 준 폴더는 소유자 전용(0700) 권한으로 맞춥니다.
+- token 파일 경로가 디렉터리면 아직 트레이스백이 나오고, `--selftest` 는 임시 폴더를 남깁니다(둘 다 수정 예정).
 
 ## 자주 겪는 문제
 | 증상 | 원인 | 해결 |
@@ -189,7 +191,7 @@ flowchart LR
 | 연결 화면에서 일부가 "권한 없음" | IAM 권한 부족 | `awsglance policy` 의 정책을 붙이거나 화면의 복사 버튼 사용. 못 본 항목은 판단 보류로 표시됩니다 |
 | 첫 수집이 오래 걸림 | CloudTrail 조회 속도 제한·리전 수 | `--regions` 로 범위를 좁힘 |
 | 다른 기기에서 열면 401 | 비로컬 바인드는 토큰이 필요함(`AWSGLANCE_TOKEN` 이 없으면 자동 생성해 주소에 `?token=` 으로 출력) | 터미널에 찍힌 주소를 그대로 쓰거나 `AWSGLANCE_TOKEN` 을 직접 지정 |
-| 시작할 때 데이터 폴더를 만들지 못해 오류(PermissionError) | 기본 위치(`~/.local/share/awsglance`)에 쓸 수 없음 | `AWSGLANCE_DATA_DIR` 또는 `--data-dir` 로 쓸 수 있는 폴더 지정(오류 문구를 다듬는 일은 로드맵) |
+| 시작할 때 "Cannot create or open the data folder …" 안내와 함께 종료(종료 코드 2) | 기본 위치(`~/.local/share/awsglance`)에 쓸 수 없거나, `--data-dir`·`AWSGLANCE_DATA_DIR` 로 준 폴더에 쓸 수 없거나 폴더 자리에 파일이 있음 | `AWSGLANCE_DATA_DIR` 또는 `--data-dir` 로 쓸 수 있는 폴더 지정 |
 | 화면이 비어 있음(개발 중) | 프론트 빌드 없음 | 소스에서 실행한다면 `cd web && npm ci && npm run build` |
 
 ## 로드맵

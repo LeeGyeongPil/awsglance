@@ -30,7 +30,7 @@ uv run awsglance --demo --no-browser --port 8742
 ```
 ```
 [demo] fictional account 123456789012: 47 resources, 26 CloudTrail events, 8 resource changes (practice mode, mock data — no AWS calls)
-awsglance 0.1.3 — open http://127.0.0.1:8742/  (Ctrl+C to stop)
+awsglance 0.1.4 — open http://127.0.0.1:8742/  (Ctrl+C to stop)
 ```
 Open the printed address in a browser and the overview screen shown at the top appears. Leave out `--no-browser` and the browser opens automatically.
 
@@ -180,6 +180,8 @@ By default it accepts connections only on `127.0.0.1`. If you bind to another ad
 - Behavior on a real account cannot be verified by CI. Check it yourself with the permission check table on the setup screen and the collection history.
 - Related CloudTrail may miss some events (for example when a Lambda request comes in by function ARN, or a load balancer stored only by name). This is a deliberate choice to avoid wrong links.
 - The example account in practice mode is fake.
+- A folder given with `--data-dir` is set to owner-only (0700) permissions.
+- If a token file path points to a directory, a traceback is still shown, and `--selftest` leaves its temporary folder behind (both are planned fixes).
 
 ## Troubleshooting
 | Symptom | Cause | Fix |
@@ -189,7 +191,7 @@ By default it accepts connections only on `127.0.0.1`. If you bind to another ad
 | Some items show "no permission" on the setup screen | Insufficient IAM permissions | Attach the policy from `awsglance policy` or use the copy button on the screen. Items it could not see are shown as judgment withheld |
 | The first collection takes long | CloudTrail rate limit, number of regions | Narrow the scope with `--regions` |
 | 401 when opened from another device | A non-local bind requires a token (if `AWSGLANCE_TOKEN` is absent, one is created and printed in the address as `?token=`) | Use the address printed in the terminal as is, or set `AWSGLANCE_TOKEN` yourself |
-| Error at startup because the data folder cannot be created (PermissionError) | Cannot write to the default location (`~/.local/share/awsglance`) | Specify a writable folder with `AWSGLANCE_DATA_DIR` or `--data-dir` (polishing the error message is on the roadmap) |
+| Startup stops with "Cannot create or open the data folder …" (exit code 2) | Cannot write to the default location (`~/.local/share/awsglance`), or the folder given with `--data-dir` / `AWSGLANCE_DATA_DIR` is not writable or is a file instead of a folder | Specify a writable folder with `AWSGLANCE_DATA_DIR` or `--data-dir` |
 | The screen is empty (during development) | No frontend build | If running from source, `cd web && npm ci && npm run build` |
 
 ## Roadmap
