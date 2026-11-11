@@ -30,7 +30,7 @@ uv run awsglance --demo --no-browser --port 8742
 ```
 ```
 [demo] fictional account 123456789012: 47 resources, 26 CloudTrail events, 8 resource changes (practice mode, mock data — no AWS calls)
-awsglance 0.1.2 — open http://127.0.0.1:8742/  (Ctrl+C to stop)
+awsglance 0.1.3 — open http://127.0.0.1:8742/  (Ctrl+C to stop)
 ```
 Open the printed address in a browser and the overview screen shown at the top appears. Leave out `--no-browser` and the browser opens automatically.
 

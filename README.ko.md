@@ -30,7 +30,7 @@ uv run awsglance --demo --no-browser --port 8742
 ```
 ```
 [demo] fictional account 123456789012: 47 resources, 26 CloudTrail events, 8 resource changes (practice mode, mock data — no AWS calls)
-awsglance 0.1.2 — open http://127.0.0.1:8742/  (Ctrl+C to stop)
+awsglance 0.1.3 — open http://127.0.0.1:8742/  (Ctrl+C to stop)
 ```
 브라우저에서 출력된 주소를 열면 맨 위에 보인 개요 화면이 나타납니다. `--no-browser` 를 빼면 브라우저가 자동으로 열립니다.
 
