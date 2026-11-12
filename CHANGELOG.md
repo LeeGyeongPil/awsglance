@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.0 — 2026-11-12
+- 추가: 영어·한국어 화면 언어 선택. 웹 화면 머리말에 언어 메뉴(English / 한국어)가 생겼고, 고른 값은 브라우저 localStorage(`awsglance-lang`)에 저장됩니다. 저장값이 없을 때만 브라우저 언어(ko 로 시작하면 한국어, 아니면 영어)로 정합니다. 주소에 `?lang=ko` 를 붙여도 됩니다. `awsglance export` 사본도 같은 화면이라 같은 방식으로 따라갑니다.
+- 추가: CLI 언어 — `--lang en|ko` > `AWSGLANCE_LANG` > `LC_ALL`·`LC_MESSAGES`·`LANG` 순, 한국어가 아니면 영어. 도움말(`usage:`·섹션 제목 포함)·진행 출력·인자 오류·오류 메시지(데이터 폴더, 프로필 없음, AWS 연결 실패, 포트 사용 중, export 실패, `--selftest` 는 `--demo` 필요)가 두 언어로 나옵니다.
+- 추가: 발견 사항은 규칙 id + 파라미터로 화면에서 번역합니다. 규칙이 `params` 를 함께 내고 DB `findings` 에 `params` 열(JSON, NULL 허용)이 추가됩니다(스키마 버전 2, 기존 DB 는 열만 추가되어 그대로 열림). 옛 행은 저장된 문장을 그대로 보여 줍니다. API 는 기존 `title`·`detail` 을 그대로 두고 `params`(발견 사항), `code`·`params`(신뢰 신호·HTTP 오류), `reason_code`(이벤트 분류 근거)를 더했습니다.
+- 추가: 내보내기 출력 폴더에 쓸 수 없을 때(권한 등) 트레이스백 대신 `--out` 경로와 이유를 안내하고 종료 코드 2.
+- 유지: `SELFTEST_OK …`/`SELFTEST_FAIL …` 줄, `awsglance policy` JSON, `--version` 출력, JSON 키, AWS 리소스 이름·ARN·리전·이벤트 이름, 심각도 값은 번역하지 않고 그대로입니다.
+- 참고: 한국어 로캘에서 CLI 기본 출력이 한국어로 바뀝니다. 출력 문구를 비교하는 스크립트는 `SELFTEST_OK` 줄이나 `--lang en` 을 쓰세요.
+- 개발: `web/` 에 `npm test`(타입 검사 + node 로 문구 표 검사)가 추가되었습니다(Node 22.12 이상). 
+- 알려진 한계: 접근 보호 장치의 일반 텍스트 HTTP 오류는 아직 영어뿐이고, `/api/rules` 의 규칙 설명은 항상 한국어입니다.
+
 ## 0.1.4 — 2026-11-12
 - 개선: 데이터 폴더를 만들거나 열 수 없을 때 트레이스백 대신 --data-dir/AWSGLANCE_DATA_DIR 안내와 종료 코드 2(이전 1)
 - 알려진 한계: token 파일 경로가 디렉터리면 아직 트레이스백이 나오고, --selftest 임시 폴더는 정리되지 않음(다음 패치 예정)

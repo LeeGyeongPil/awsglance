@@ -4,7 +4,7 @@
 
 AWS 계정 하나의 "누가 무엇을 바꿨나 · 위험한 설정 · 지금 확인할 것"을 한 화면에 모아 보여 주는 읽기 전용 웹 상황판입니다. 콘솔 여러 화면(Event history, EC2, S3, IAM, 보안 서비스)을 오가며 손으로 확인하던 아침 점검을 줄여 줍니다. 코드로 강제한 읽기 전용이라 무엇도 바꾸지 못합니다.
 
-![연습 모드의 개요 화면](docs/images/01-overview.png)
+![연습 모드의 개요 화면](docs/images/01-overview.ko.png)
 *연습 모드의 개요 화면: 신뢰 신호, 지금 확인할 것, 최근 24시간 요약이 한 장에 보입니다(아래로 내리면 14일 변경 그래프가 이어집니다).*
 
 ## 이런 분께
@@ -13,7 +13,7 @@ AWS 계정 하나의 "누가 무엇을 바꿨나 · 위험한 설정 · 지금 �
 - 계정을 새로 넘겨받아 어디가 열려 있는지 먼저 훑어보고 싶은 경우
 
 ## 설치
-Python 3.12 이상이 필요하고, 실행 도구는 [uv](https://docs.astral.sh/uv/)를 씁니다. 별도 Node 설치는 필요 없습니다(화면은 빌드된 상태로 패키지에 들어 있습니다).
+Python 3.12 이상이 필요하고, 실행 도구는 [uv](https://docs.astral.sh/uv/)를 씁니다. 별도 Node 설치는 필요 없습니다(화면은 빌드된 상태로 패키지에 들어 있습니다). `web/` 의 화면을 직접 고칠 때만 Node 22.12 이상이 필요합니다.
 
 ```bash
 curl -LsSf https://astral.sh/uv/install.sh | sh      # uv 설치(이미 있으면 생략)
@@ -30,9 +30,9 @@ uv run awsglance --demo --no-browser --port 8742
 ```
 ```
 [demo] fictional account 123456789012: 47 resources, 26 CloudTrail events, 8 resource changes (practice mode, mock data — no AWS calls)
-awsglance 0.1.4 — open http://127.0.0.1:8742/  (Ctrl+C to stop)
+awsglance 0.2.0 — open http://127.0.0.1:8742/  (Ctrl+C to stop)
 ```
-브라우저에서 출력된 주소를 열면 맨 위에 보인 개요 화면이 나타납니다. `--no-browser` 를 빼면 브라우저가 자동으로 열립니다.
+위 출력은 영어 시스템에서의 모습입니다. 한국어 시스템이거나 `--lang ko` 를 주면 같은 줄이 한국어로 나옵니다(`[demo] 가상 계정 123456789012: 자원 47개, …`). 브라우저에서 출력된 주소를 열면 맨 위에 보인 개요 화면이 나타납니다. `--no-browser` 를 빼면 브라우저가 자동으로 열립니다.
 
 **연습용 목(mock) 모드입니다.** 가상의 예제 계정(`123456789012`)의 JSON 을 읽어 실제 수집·판정 코드 경로를 그대로 통과시키지만 AWS 를 호출하지는 않습니다. 실제 모드와의 차이는 두 가지입니다: 데이터가 가짜라는 것, 그리고 실제 모드는 계정 규모·리전 수에 따라 첫 수집에 수 분이 걸릴 수 있다는 것(CloudTrail 조회 속도 제한 때문)입니다.
 
@@ -40,8 +40,8 @@ awsglance 0.1.4 — open http://127.0.0.1:8742/  (Ctrl+C to stop)
 ```bash
 uv run awsglance --demo --selftest
 ```
-![자체 점검 출력](docs/images/02-demo-run.png)
-*`SELFTEST_OK` 는 5개 화면과 API 가 모두 응답했다는 뜻이고, 종료 코드는 0 입니다.*
+![자체 점검 출력](docs/images/02-demo-run.ko.png)
+*`AWSGLANCE_LANG=ko` 로 실행한 모습입니다. `SELFTEST_OK` 는 5개 화면과 API 가 모두 응답했다는 뜻이고, 종료 코드는 0 입니다. 이 줄은 어느 언어에서도 같습니다.*
 
 ## 내 계정 연결하기
 awsglance 는 API 키를 따로 받지 않고 표준 AWS 자격증명 체인(환경 변수·프로필·SSO·역할)을 그대로 씁니다.
@@ -53,7 +53,7 @@ uvx awsglance --profile myprof --regions ap-northeast-2,us-east-1
 1. 프로필에 붙일 **최소 IAM 정책**을 출력합니다: `uv run awsglance policy` (레포의 `iam-policy.json` 과 같은 내용, 테스트로 일치 검사).
 2. 서버를 띄우고 `/setup` 연결 화면에서 **권한 점검 표**를 봅니다. 수집기마다 허용·거부·사용 불가가 따로 보입니다.
 
-![연결 화면의 권한 점검 표](docs/images/03-setup.png)
+![연결 화면의 권한 점검 표](docs/images/03-setup.ko.png)
 *권한 점검 표. 권한이 없어 못 본 것은 "꺼짐"이 아니라 "권한 없음"으로 따로 표시됩니다(모르는 것을 꺼졌다고 단정하지 않습니다).*
 
 ![최소 IAM 정책](docs/images/07-policy.png)
@@ -69,15 +69,15 @@ uvx awsglance --profile myprof --regions ap-northeast-2,us-east-1
 | 연결 | `/setup` | 어떤 주체로 붙었고 어떤 권한이 부족한가? |
 
 ### 누가 바꿨지?
-![사람이 한 작업 탭](docs/images/04-changes-human.png)
+![사람이 한 작업 탭](docs/images/04-changes-human.ko.png)
 *"사람이 한 작업" 탭. 서비스 자동 호출은 걸러지고 사람의 변경만 남습니다.*
 
 ### 위험한 설정과 대응
-![발견 사항 상세](docs/images/05-finding-detail.png)
+![발견 사항 상세](docs/images/05-finding-detail.ko.png)
 *발견 사항 상세. 규칙 설명과 대응 방법, 처리 기록이 함께 나옵니다. 숨김은 사유가 필수이고 기한이 있습니다.*
 
 ### 자원 중심으로 보기
-![자원 상세](docs/images/06-resource-detail.png)
+![자원 상세](docs/images/06-resource-detail.ko.png)
 *보안 그룹 하나의 속성, 변경 이력, 관련 CloudTrail 이벤트, 발견 사항을 한곳에서 봅니다.*
 
 관련 CloudTrail 이벤트는 자원 ID·ARN 이 정확히 같은 것만 보여 줍니다. 이름이 비슷한 자원(`demo-web` / `demo-webhook`)의 이벤트가 섞이지 않게 일부러 덜 보이며, IAM 액세스 키는 연결하지 않습니다. 더 넓게 찾을 때는 변경 이력 화면의 검색을 쓰세요.
@@ -96,6 +96,7 @@ uvx awsglance --profile myprof --regions ap-northeast-2,us-east-1
 | `--host` / `--port` | 바인드 주소·포트(기본 `127.0.0.1`, 포트 1~65535) | `--port 8742` |
 | `--allow-host` | 추가로 허용할 Host 헤더(반복 가능) | `--allow-host ops.example.com` |
 | `--data-dir` | SQLite DB 위치(기본 `~/.local/share/awsglance`) | `--data-dir ./data` |
+| `--lang en\|ko` | CLI 메시지 언어([언어 고르기](#언어-고르기) 참고) | `--lang ko` |
 | `--no-browser` | 브라우저를 열지 않음 | |
 | `--version` | 버전 출력 | |
 
@@ -105,13 +106,34 @@ uvx awsglance --profile myprof --regions ap-northeast-2,us-east-1
 - **다른 기기에서 열기**: 로컬이 아닌 주소로 띄우면 접근 토큰이 필수이고, 허용할 Host 도 직접 알려야 합니다.
   1. `AWSGLANCE_TOKEN=<긴 임의 문자열> uv run awsglance --host 0.0.0.0 --allow-host <이 기기의 IP 또는 이름>`
   2. 터미널에 찍힌 주소의 `127.0.0.1` 을 그 IP 로 바꾸고 `?token=…` 을 붙여 다른 기기의 브라우저에서 엽니다.
-  3. `--allow-host` 가 없으면 Host 헤더 검사(DNS 리바인딩 방지) 때문에 400 이 납니다. 오류 문구에 필요한 옵션이 적혀 있습니다.
+  3. `--allow-host` 가 없으면 Host 헤더 검사(DNS 리바인딩 방지) 때문에 400 이 납니다. 오류 문구(영어 원문: `Host '…' is not allowed. Start awsglance with --allow-host …`)에 필요한 옵션이 적혀 있습니다.
+
+### 언어 고르기
+화면과 명령줄 메시지는 영어와 한국어로 나옵니다.
+
+| 어디 | 고르는 방법 | 우선순위 |
+|---|---|---|
+| 명령줄 | `--lang en` 또는 `--lang ko` | `--lang`, 그다음 `AWSGLANCE_LANG`, 그다음 `LC_ALL`·`LC_MESSAGES`·`LANG`(값이 있는 첫 번째). `ko` 로 시작하지 않으면 영어 |
+| 웹 화면 | 맨 위 줄의 언어 메뉴(English / 한국어) | 저장된 선택(브라우저 `localStorage` 키 `awsglance-lang`). 저장값이 없을 때만 브라우저 언어(`ko…` 면 한국어, 아니면 영어) |
+
+```bash
+uv run awsglance --demo --selftest --lang ko        # 한국어 메시지
+AWSGLANCE_LANG=en uv run awsglance --demo --selftest   # 한국어 시스템에서도 영어
+```
+주소 뒤에 `?lang=ko` 를 붙이면(예: `http://127.0.0.1:8742/?lang=ko`) 화면이 한국어로 바뀌고 그 선택이 저장됩니다. 브라우저가 `localStorage` 를 막아도 화면은 브라우저·주소가 정한 언어로 뜨고, 다만 기억하지 못할 뿐입니다. `export` 로 만든 정적 사본도 같은 화면이라 같은 규칙을 따릅니다. 이때 `?lang` 은 `#` 앞에 둡니다(예: `index.html?lang=ko#/findings`).
+
+참고: `uvx awsglance` 는 PyPI 에 게시된 최신 버전을 받으므로 0.2.0 이 게시되기 전에는 이 README 보다 옛 버전일 수 있습니다. 언어 기능을 바로 쓰려면 clone 해서 `uv run awsglance ...` 로 실행하세요.
+
+![맨 위 줄의 언어 메뉴](docs/images/08-language-menu.ko.png)
+*언어 메뉴는 맨 위 줄의 테마 버튼 옆에 있습니다. 고른 값은 브라우저에 저장됩니다.*
+
+두 언어에서 그대로인 것: `SELFTEST_OK …` 줄, `awsglance policy` JSON, `--version` 출력, AWS 리소스 이름·ARN·리전·API·이벤트 이름, 심각도 값(`critical` 등), 연습 모드 예제 데이터. 0.2.0 이전에 DB 에 저장된 발견 사항은 저장된 문장 그대로 보이고, 새 발견 사항은 화면에서 번역됩니다.
 
 ### 서버 없이 공유하기 (export)
 `uv run awsglance export --demo --out ./site` 로 한 파일짜리 `site/index.html` 을 만들고 브라우저로 열면 됩니다(화면은 `index.html#/changes?tab=human` 처럼 `#` 뒤 경로로 고름). 사본은 만든 시점의 읽기 전용 스냅샷이라 숨김·닫기는 막힙니다. 값은 가려진 상태지만 계정 구조가 담기므로 신뢰할 수 있는 곳에만 전달하세요.
 
 ## 설정
-API 키는 필요 없습니다. 선택 항목은 [.env.example](.env.example)에 있습니다(`AWS_PROFILE`, `AWS_REGION`, `AWSGLANCE_DATA_DIR`, `AWSGLANCE_TOKEN`).
+API 키는 필요 없습니다. 선택 항목은 [.env.example](.env.example)에 있습니다(`AWS_PROFILE`, `AWS_REGION`, `AWSGLANCE_DATA_DIR`, `AWSGLANCE_TOKEN`, `AWSGLANCE_LANG`).
 
 데이터 폴더의 `config.toml` 로 수집 주기와 사람/자동 분류를 바꿀 수 있습니다. 파일이 없으면 기본값을 씁니다.
 ```toml
@@ -177,9 +199,12 @@ flowchart LR
 ## 알려진 한계
 - CloudTrail `LookupEvents` 는 최근 90일만 조회되고 초당 2회로 제한됩니다. 그래서 첫 수집은 24시간만 받고 다음 회차에 이어 받습니다.
 - AWS Health 는 지원 플랜에 따라 쓸 수 없을 수 있습니다(운영 신호 확장은 다음 마일스톤 예정).
+- `/api/rules` 의 규칙 설명은 항상 한국어이고, 접근 보호 장치(토큰·Host·Origin)의 일반 텍스트 HTTP 오류는 아직 영어뿐입니다.
 - 실제 계정에서의 동작은 CI 로 검증하지 못합니다. 연결 화면의 권한 점검 표와 수집 이력으로 직접 확인하세요.
 - 관련 CloudTrail 은 놓치는 이벤트가 있을 수 있습니다(예: Lambda 요청이 함수 ARN 으로 온 경우, 이름만 저장한 로드 밸런서). 오연결을 피하려는 선택입니다.
 - 연습 모드의 예제 계정은 가짜입니다.
+- 일부 문구는 영어로만 나옵니다: 접근 보호 장치의 일반 텍스트 HTTP 오류(`Host '…' is not allowed. Start awsglance with --allow-host …`, `Unauthorized`, `Forbidden origin`). 명령줄 `--help` 의 제목과 흔한 인자 오류는 `--lang` 을 따르고, 표에 없는 argparse 오류 사유는 argparse 원문으로 보입니다. 한국어 문장으로 저장돼 있던 이벤트 분류 근거는 코드로 대응시켜 번역하고, 표에 없는 문장은 저장된 그대로 보입니다.
+- CLI 출력 문구를 비교하는 스크립트에는 `AWSGLANCE_LANG=en` 을 지정하세요. 한국어 시스템에서는 기본값이 이제 한국어입니다.
 - `--data-dir` 로 준 폴더는 소유자 전용(0700) 권한으로 맞춥니다.
 - token 파일 경로가 디렉터리면 아직 트레이스백이 나오고, `--selftest` 는 임시 폴더를 남깁니다(둘 다 수정 예정).
 
@@ -187,11 +212,13 @@ flowchart LR
 | 증상 | 원인 | 해결 |
 |---|---|---|
 | `read-only guard blocked …` 오류 | 허용 목록 밖의 작업을 부르려 함 | 정상 동작입니다. 필요한 읽기 작업이면 이슈로 알려 주세요 |
-| `Port 8743 is in use — pick another with --port …` (종료 코드 2) | 같은 포트를 다른 프로세스가 사용 중 | 안내대로 `--port` 로 다른 포트 지정 |
+| `Port 8743 is in use — pick another with --port …` (한국어: `포트 8743 는 이미 사용 중입니다 — --port 로 다른 포트를 고르세요 …`, 종료 코드 2) | 같은 포트를 다른 프로세스가 사용 중 | 안내대로 `--port` 로 다른 포트 지정 |
 | 연결 화면에서 일부가 "권한 없음" | IAM 권한 부족 | `awsglance policy` 의 정책을 붙이거나 화면의 복사 버튼 사용. 못 본 항목은 판단 보류로 표시됩니다 |
 | 첫 수집이 오래 걸림 | CloudTrail 조회 속도 제한·리전 수 | `--regions` 로 범위를 좁힘 |
 | 다른 기기에서 열면 401 | 비로컬 바인드는 토큰이 필요함(`AWSGLANCE_TOKEN` 이 없으면 자동 생성해 주소에 `?token=` 으로 출력) | 터미널에 찍힌 주소를 그대로 쓰거나 `AWSGLANCE_TOKEN` 을 직접 지정 |
-| 시작할 때 "Cannot create or open the data folder …" 안내와 함께 종료(종료 코드 2) | 기본 위치(`~/.local/share/awsglance`)에 쓸 수 없거나, `--data-dir`·`AWSGLANCE_DATA_DIR` 로 준 폴더에 쓸 수 없거나 폴더 자리에 파일이 있음 | `AWSGLANCE_DATA_DIR` 또는 `--data-dir` 로 쓸 수 있는 폴더 지정 |
+| 시작할 때 "Cannot create or open the data folder …"(한국어: "데이터 폴더 … 를 만들거나 열 수 없습니다") 안내와 함께 종료(종료 코드 2) | 기본 위치(`~/.local/share/awsglance`)에 쓸 수 없거나, `--data-dir`·`AWSGLANCE_DATA_DIR` 로 준 폴더에 쓸 수 없거나 폴더 자리에 파일이 있음 | `AWSGLANCE_DATA_DIR` 또는 `--data-dir` 로 쓸 수 있는 폴더 지정 |
+| CLI 가 뜻밖의 언어로 나옴 | 언어는 `--lang`, `AWSGLANCE_LANG`, `LC_ALL`·`LC_MESSAGES`·`LANG` 순으로 정해짐 | `--lang en`(또는 `ko`)을 주거나 `AWSGLANCE_LANG` 을 지정 |
+| 화면이 다른 언어로 보임 | 브라우저에 저장된 언어(`awsglance-lang`)가 브라우저 언어보다 우선함 | 맨 위 메뉴에서 언어를 고르거나 `?lang=ko` 로 주소를 엶 |
 | 화면이 비어 있음(개발 중) | 프론트 빌드 없음 | 소스에서 실행한다면 `cd web && npm ci && npm run build` |
 
 ## 로드맵

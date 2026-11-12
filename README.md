@@ -13,7 +13,7 @@ awsglance is a read-only, single-process web dashboard for one AWS account: it c
 - You have just taken over an account and want to skim first for what is left open
 
 ## Installation
-Python 3.12 or later is required, and [uv](https://docs.astral.sh/uv/) is used to run it. No separate Node installation is needed (the UI ships in the package already built).
+Python 3.12 or later is required, and [uv](https://docs.astral.sh/uv/) is used to run it. No separate Node installation is needed (the UI ships in the package already built). Node 22.12 or later is needed only if you change the UI under `web/`.
 
 ```bash
 curl -LsSf https://astral.sh/uv/install.sh | sh      # Install uv (skip if you already have it)
@@ -30,7 +30,7 @@ uv run awsglance --demo --no-browser --port 8742
 ```
 ```
 [demo] fictional account 123456789012: 47 resources, 26 CloudTrail events, 8 resource changes (practice mode, mock data — no AWS calls)
-awsglance 0.1.4 — open http://127.0.0.1:8742/  (Ctrl+C to stop)
+awsglance 0.2.0 — open http://127.0.0.1:8742/  (Ctrl+C to stop)
 ```
 Open the printed address in a browser and the overview screen shown at the top appears. Leave out `--no-browser` and the browser opens automatically.
 
@@ -41,7 +41,7 @@ To check every screen API automatically without a browser, use the self-test (it
 uv run awsglance --demo --selftest
 ```
 ![Self-test output](docs/images/02-demo-run.png)
-*`SELFTEST_OK` means all 5 screens and the API responded, and the exit code is 0.*
+*Run with `AWSGLANCE_LANG=en`. `SELFTEST_OK` means all 5 screens and the API responded, and the exit code is 0. That line is the same in both languages.*
 
 ## Connecting your account
 awsglance does not ask for an API key of its own; it uses the standard AWS credential chain (environment variables, profiles, SSO, roles) as is.
@@ -51,7 +51,7 @@ uvx awsglance --profile myprof                 # A profile logged in via SSO, et
 uvx awsglance --profile myprof --regions ap-northeast-2,us-east-1
 ```
 1. Print the **minimum IAM policy** to attach to the profile: `uv run awsglance policy` (same content as `iam-policy.json` in the repo, checked for equality by a test).
-2. Start the server and look at the **permission check table** on the `/setup` connection screen. Allowed, denied and unavailable are shown separately for each collector.
+2. Start the server and look at the **permission check table** on the `/setup` Connection screen. Allowed, denied and unavailable are shown separately for each collector.
 
 ![Permission check table on the connection screen](docs/images/03-setup.png)
 *The permission check table. Things it could not see for lack of permission are shown separately as "no permission", not "off" (it does not assert that something it cannot know is off).*
@@ -66,7 +66,7 @@ uvx awsglance --profile myprof --regions ap-northeast-2,us-east-1
 | Changes | `/changes` | Who changed what? ("Human actions" tab) |
 | Findings | `/findings` | What are the risky settings and events, and how do I fix them? |
 | Resources | `/resources` | What are this resource's properties, change history and related events? |
-| Setup | `/setup` | Which principal is connected, and which permissions are missing? |
+| Connection | `/setup` | Which principal is connected, and which permissions are missing? |
 
 ### Who changed it?
 ![Human actions tab](docs/images/04-changes-human.png)
@@ -96,6 +96,7 @@ Related CloudTrail events are shown only when the resource ID or ARN matches exa
 | `--host` / `--port` | Bind address and port (default `127.0.0.1`, port 1 to 65535) | `--port 8742` |
 | `--allow-host` | Additional Host header to allow (repeatable) | `--allow-host ops.example.com` |
 | `--data-dir` | SQLite DB location (default `~/.local/share/awsglance`) | `--data-dir ./data` |
+| `--lang en\|ko` | Language of CLI messages (see [Choosing the language](#choosing-the-language)) | `--lang ko` |
 | `--no-browser` | Do not open the browser | |
 | `--version` | Print the version | |
 
@@ -107,11 +108,32 @@ Related CloudTrail events are shown only when the resource ID or ARN matches exa
   2. In the address printed in the terminal, replace `127.0.0.1` with that IP, append `?token=…`, and open it in the other device's browser.
   3. Without `--allow-host` you get a 400 because of the Host header check (DNS rebinding protection). The error message names the option you need.
 
+### Choosing the language
+The screens and the command-line messages come in English and Korean.
+
+| Where | How to choose | Order of precedence |
+|---|---|---|
+| Command line | `--lang en` or `--lang ko` | `--lang`, then `AWSGLANCE_LANG`, then `LC_ALL`, `LC_MESSAGES`, `LANG` (the first one that is set); anything that does not start with `ko` means English |
+| Web screens | The language menu (English / 한국어) in the top bar | The saved choice (browser `localStorage` key `awsglance-lang`), and only when nothing is saved, the browser language (`ko…` means Korean, otherwise English) |
+
+```bash
+uv run awsglance --demo --selftest --lang ko        # Korean messages
+AWSGLANCE_LANG=en uv run awsglance --demo --selftest   # English, even on a Korean-language system
+```
+Adding `?lang=ko` to the address (for example `http://127.0.0.1:8742/?lang=ko`) switches the screen to Korean and saves the choice. If the browser blocks `localStorage`, the screen still opens in the language the browser or address selects; it just is not remembered. The static copy made by `export` is the same screen, so it follows the same rules; there the `?lang` goes before the `#`, as in `index.html?lang=ko#/findings`.
+
+Note: `uvx awsglance` fetches the latest version published on PyPI, which may be older than this README until 0.2.0 is published. To get the language features now, run from a clone with `uv run awsglance ...`.
+
+![Language menu in the top bar](docs/images/08-language-menu.png)
+*The language menu sits in the top bar next to the theme button. The choice is saved in the browser.*
+
+What stays as it is in both languages: the `SELFTEST_OK …` line, the `awsglance policy` JSON, the `--version` output, AWS resource names, ARNs, regions, API and event names, severity values (`critical` and so on) and the practice-mode fixture data. Findings from before 0.2.0 that are already in your database keep the sentence they were saved with; new findings are translated on screen.
+
 ### Sharing without a server (export)
 `uv run awsglance export --demo --out ./site` creates a single-file `site/index.html` that you can open in a browser (choose screens by the path after `#`, such as `index.html#/changes?tab=human`). The copy is a read-only snapshot from the time it was made, so hiding and closing are blocked. Values are masked, but it contains the structure of the account, so pass it only to trusted places.
 
 ## Configuration
-No API key is needed. Optional items are in [.env.example](.env.example) (`AWS_PROFILE`, `AWS_REGION`, `AWSGLANCE_DATA_DIR`, `AWSGLANCE_TOKEN`).
+No API key is needed. Optional items are in [.env.example](.env.example) (`AWS_PROFILE`, `AWS_REGION`, `AWSGLANCE_DATA_DIR`, `AWSGLANCE_TOKEN`, `AWSGLANCE_LANG`).
 
 A `config.toml` in the data folder lets you change the collection intervals and the human/automated classification. If the file is absent, defaults are used.
 ```toml
@@ -177,9 +199,12 @@ By default it accepts connections only on `127.0.0.1`. If you bind to another ad
 ## Known limitations
 - CloudTrail `LookupEvents` only reaches back 90 days and is limited to 2 requests per second. So the first collection fetches only 24 hours and continues on the next round.
 - AWS Health may be unavailable depending on your support plan (extending operational signals is planned for the next milestone).
-- Behavior on a real account cannot be verified by CI. Check it yourself with the permission check table on the setup screen and the collection history.
+- Rule descriptions from `/api/rules` are always in Korean, and the plain-text HTTP errors of the access guard (token, Host, Origin) are still English only.
+- Behavior on a real account cannot be verified by CI. Check it yourself with the permission check table on the Connection screen and the collection history.
 - Related CloudTrail may miss some events (for example when a Lambda request comes in by function ARN, or a load balancer stored only by name). This is a deliberate choice to avoid wrong links.
 - The example account in practice mode is fake.
+- A few texts are English only: the plain-text HTTP errors from the access guard (`Host '…' is not allowed. Start awsglance with --allow-host …`, `Unauthorized`, `Forbidden origin`). The command-line `--help` headings and the common argument errors follow `--lang`; an argparse reason the table does not know is shown in argparse's own wording. Event classification reasons that were stored as Korean sentences are mapped to codes and translated; a sentence the table does not know is shown as stored.
+- Set `AWSGLANCE_LANG=en` in scripts that compare the CLI's output text: on a Korean-language system the default is now Korean.
 - A folder given with `--data-dir` is set to owner-only (0700) permissions.
 - If a token file path points to a directory, a traceback is still shown, and `--selftest` leaves its temporary folder behind (both are planned fixes).
 
@@ -188,10 +213,12 @@ By default it accepts connections only on `127.0.0.1`. If you bind to another ad
 |---|---|---|
 | `read-only guard blocked …` error | An operation outside the allowlist was attempted | This is normal behavior. If it is a read operation you need, please tell us in an issue |
 | `Port 8743 is in use — pick another with --port …` (exit code 2) | Another process is using the same port | Pick another port with `--port` as the message says |
-| Some items show "no permission" on the setup screen | Insufficient IAM permissions | Attach the policy from `awsglance policy` or use the copy button on the screen. Items it could not see are shown as judgment withheld |
+| Some items show "no permission" on the Connection screen | Insufficient IAM permissions | Attach the policy from `awsglance policy` or use the copy button on the screen. Items it could not see are shown as judgment withheld |
 | The first collection takes long | CloudTrail rate limit, number of regions | Narrow the scope with `--regions` |
 | 401 when opened from another device | A non-local bind requires a token (if `AWSGLANCE_TOKEN` is absent, one is created and printed in the address as `?token=`) | Use the address printed in the terminal as is, or set `AWSGLANCE_TOKEN` yourself |
 | Startup stops with "Cannot create or open the data folder …" (exit code 2) | Cannot write to the default location (`~/.local/share/awsglance`), or the folder given with `--data-dir` / `AWSGLANCE_DATA_DIR` is not writable or is a file instead of a folder | Specify a writable folder with `AWSGLANCE_DATA_DIR` or `--data-dir` |
+| The CLI prints Korean (or English) when you did not expect it | The language comes from `--lang`, then `AWSGLANCE_LANG`, then `LC_ALL` / `LC_MESSAGES` / `LANG` | Pass `--lang en` (or `ko`), or set `AWSGLANCE_LANG` |
+| The screen shows the other language | A language saved in the browser (`awsglance-lang`) wins over the browser language | Pick the language in the top-bar menu, or open the address with `?lang=en` |
 | The screen is empty (during development) | No frontend build | If running from source, `cd web && npm ci && npm run build` |
 
 ## Roadmap
