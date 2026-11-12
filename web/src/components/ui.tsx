@@ -1,37 +1,43 @@
 // 여러 화면이 같이 쓰는 작은 조각들. 상태는 색 + 아이콘 + 글자로 겹쳐 표시한다(색을 구분하기 어려운 사람도 읽게).
 import { useEffect, useRef, type ReactNode } from "react";
 import type { ActorClass, Severity, TrustLevel } from "../api";
-import { ACTOR_LABEL, SEVERITY_ICON, SEVERITY_LABEL } from "../format";
+import { actorLabel, SEVERITY_ICON, severityLabel } from "../format";
+import type { Failure } from "../i18n";
+import { errorText } from "../i18n";
+import { useI18n } from "../lang";
 import { hrefFor, linkHandler } from "../router";
 
 export function SeverityBadge({ severity }: { severity: Severity }) {
+  const { t } = useI18n();
+  const label = severityLabel(t, severity);
   return (
-    <span className={`badge sev-${severity}`} title={`심각도: ${SEVERITY_LABEL[severity]}`}>
-      <span aria-hidden="true">{SEVERITY_ICON[severity]}</span> {SEVERITY_LABEL[severity]}
+    <span className={`badge sev-${severity}`} title={t("sev.title", { label })}>
+      <span aria-hidden="true">{SEVERITY_ICON[severity]}</span> {label}
     </span>
   );
 }
 
 export function ActorChip({ cls, via }: { cls: ActorClass; via?: string }) {
+  const { t } = useI18n();
   const icon = cls === "human" ? "◉" : cls === "automated" ? "⚙" : "?";
   return (
     <span className={`chip actor-${cls}`}>
-      <span aria-hidden="true">{icon}</span> {ACTOR_LABEL[cls]}
+      <span aria-hidden="true">{icon}</span> {actorLabel(t, cls)}
       {via ? <span className="muted"> · {via}</span> : null}
     </span>
   );
 }
 
-const TRUST_TEXT: Record<TrustLevel, string> = { ok: "정상", warn: "주의", danger: "위험", unknown: "판단 보류" };
 const TRUST_ICON: Record<TrustLevel, string> = { ok: "✓", warn: "!", danger: "✕", unknown: "?" };
 
 export function TrustDot({ level, reason }: { level: TrustLevel; reason?: string }) {
+  const { t } = useI18n();
   return (
     <span className={`trust trust-${level}`} title={reason}>
       <span className="trust-dot" aria-hidden="true">
         {TRUST_ICON[level]}
       </span>
-      {TRUST_TEXT[level]}
+      {t(`trust.${level}`)}
     </span>
   );
 }
@@ -45,20 +51,22 @@ export function Link({ to, children, className }: { to: string; children: ReactN
 }
 
 export function Loading() {
+  const { t } = useI18n();
   return (
     <div className="state" role="status">
-      불러오는 중…
+      {t("common.loading")}
     </div>
   );
 }
 
-export function ErrorBox({ message, onRetry }: { message: string; onRetry?: () => void }) {
+export function ErrorBox({ failure, onRetry }: { failure: Failure; onRetry?: () => void }) {
+  const { t } = useI18n();
   return (
     <div className="state state-error" role="alert">
-      불러오지 못했습니다: {message}
+      {t("common.load_failed", { message: errorText(t, failure) })}
       {onRetry ? (
         <button type="button" onClick={onRetry}>
-          다시 시도
+          {t("common.retry")}
         </button>
       ) : null}
     </div>
@@ -99,6 +107,7 @@ export function Tabs<T extends string>({
 
 // 오른쪽에서 나오는 상세 창. Esc 로 닫고, 열릴 때 닫기 버튼에 초점을 둔다(키보드 탐색).
 export function Drawer({ title, onClose, children }: { title: ReactNode; onClose: () => void; children: ReactNode }) {
+  const { t } = useI18n();
   const closeRef = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     closeRef.current?.focus();
@@ -113,7 +122,7 @@ export function Drawer({ title, onClose, children }: { title: ReactNode; onClose
       <aside className="drawer" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
         <header className="drawer-head">
           <h2>{title}</h2>
-          <button ref={closeRef} type="button" className="icon-btn" onClick={onClose} aria-label="닫기">
+          <button ref={closeRef} type="button" className="icon-btn" onClick={onClose} aria-label={t("common.close")}>
             ✕
           </button>
         </header>

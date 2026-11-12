@@ -12,6 +12,7 @@
 from __future__ import annotations
 
 import datetime as dt
+import json
 
 from .store import Store, iso, parse
 
@@ -28,6 +29,12 @@ def _log(c, finding_id: int, now: dt.datetime, action: str, note: str | None = N
               (finding_id, iso(now), action, note))
 
 
+def _params_json(hit: dict) -> str | None:
+    """규칙이 낸 params 를 JSON 으로. 없으면 NULL(옛 방식: 저장된 문장 그대로 표시)."""
+    params = hit.get("params")
+    return json.dumps(params, ensure_ascii=False, sort_keys=True) if params else None
+
+
 def apply(store: Store, hits: list[dict], evaluated_rules: set[str], now: dt.datetime) -> dict:
     """규칙 평가 결과를 DB 에 반영한다 → {"opened","reopened","resolved"} 개수."""
     t = iso(now)
@@ -40,9 +47,10 @@ def apply(store: Store, hits: list[dict], evaluated_rules: set[str], now: dt.dat
             row = c.execute("SELECT id, status, suppress_until FROM findings WHERE rule_id=? AND target=?", key).fetchone()
             if row is None:
                 cur = c.execute(
-                    "INSERT INTO findings(rule_id,target,severity,title,detail,region,resource_key,status,first_seen,last_seen) "
-                    "VALUES(?,?,?,?,?,?,?,'open',?,?)",
-                    (h["rule_id"], h["target"], h["severity"], h["title"], h["detail"], h["region"], h["resource_key"], t, t))
+                    "INSERT INTO findings(rule_id,target,severity,title,detail,region,resource_key,status,first_seen,"
+                    "last_seen,params) VALUES(?,?,?,?,?,?,?,'open',?,?,?)",
+                    (h["rule_id"], h["target"], h["severity"], h["title"], h["detail"], h["region"], h["resource_key"], t, t,
+                     _params_json(h)))
                 _log(c, cur.lastrowid, now, "opened")
                 counts["opened"] += 1
                 continue
@@ -57,8 +65,8 @@ def apply(store: Store, hits: list[dict], evaluated_rules: set[str], now: dt.dat
                 new_status = "open"  # 숨김 기한이 지났다
                 _log(c, fid, now, "suppress_expired")
                 counts["unsuppressed"] += 1
-            c.execute("UPDATE findings SET status=?, detail=?, severity=?, title=?, last_seen=? WHERE id=?",
-                      (new_status, h["detail"], h["severity"], h["title"], t, fid))
+            c.execute("UPDATE findings SET status=?, detail=?, severity=?, title=?, last_seen=?, params=? WHERE id=?",
+                      (new_status, h["detail"], h["severity"], h["title"], t, _params_json(h), fid))
         # 이번에 평가한 규칙의 열린/숨긴 발견 사항 중 다시 나오지 않은 것은 해결됨
         for row in c.execute("SELECT id, rule_id, target FROM findings WHERE status IN ('open','suppressed')").fetchall():
             if row["rule_id"] in evaluated_rules and (row["rule_id"], row["target"]) not in seen:

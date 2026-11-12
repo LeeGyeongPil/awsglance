@@ -40,7 +40,7 @@ def sg_open_world(ctx: Context) -> list[Hit]:
         if ports:
             names = ", ".join(f"{p}({SENSITIVE_PORTS[p]})" for p in ports)
             hits.append(Hit(sg["key"], f"{sg['name']}({sg['id']}): {names} 포트가 인터넷 전체(0.0.0.0/0)에 열려 있음",
-                            sg["region"], sg["key"]))
+                            sg["region"], sg["key"], {"name": sg["name"], "id": sg["id"], "ports": names, "count": len(ports)}))
     return hits
 
 
@@ -51,12 +51,14 @@ def sg_default_has_rules(ctx: Context) -> list[Hit]:
             continue
         cidr_rules = [r for r in sg["props"].get("ingress", []) if ":sg:" not in r]
         if cidr_rules:
-            hits.append(Hit(sg["key"], f"기본 보안 그룹({sg['id']})에 인바운드 규칙 {len(cidr_rules)}개", sg["region"], sg["key"]))
+            hits.append(Hit(sg["key"], f"기본 보안 그룹({sg['id']})에 인바운드 규칙 {len(cidr_rules)}개", sg["region"], sg["key"],
+                            {"id": sg["id"], "count": len(cidr_rules)}))
     return hits
 
 
 def rds_public(ctx: Context) -> list[Hit]:
-    return [Hit(d["key"], f"{d['name']}({d['props'].get('engine')}) 가 공개 접근 가능으로 설정됨", d["region"], d["key"])
+    return [Hit(d["key"], f"{d['name']}({d['props'].get('engine')}) 가 공개 접근 가능으로 설정됨", d["region"], d["key"],
+                {"name": d["name"], "engine": d["props"].get("engine")})
             for d in _of_type(ctx, "rds_instance") if d["props"].get("publicly_accessible")]
 
 
@@ -65,17 +67,18 @@ def s3_bucket_pab_off(ctx: Context) -> list[Hit]:
     if ctx.posture.get("matrix", {}).get("s3_account_public_access_block", {}).get("global") == "on":
         return []
     return [Hit(b["key"], f"버킷 {b['name']} 의 퍼블릭 액세스 차단이 꺼져 있음(계정 수준 차단도 없음)",
-                b["props"].get("bucket_region") or "global", b["key"])
+                b["props"].get("bucket_region") or "global", b["key"], {"name": b["name"]})
             for b in _of_type(ctx, "s3_bucket") if not b["props"].get("public_access_block")]
 
 
 def lambda_url_no_auth(ctx: Context) -> list[Hit]:
-    return [Hit(f["key"], f"함수 {f['name']} 의 함수 URL 이 인증 없이(AuthType=NONE) 열려 있음", f["region"], f["key"])
+    return [Hit(f["key"], f"함수 {f['name']} 의 함수 URL 이 인증 없이(AuthType=NONE) 열려 있음", f["region"], f["key"],
+                {"name": f["name"]})
             for f in _of_type(ctx, "lambda_function") if f["props"].get("url_auth") == "NONE"]
 
 
 def logs_no_retention(ctx: Context) -> list[Hit]:
-    return [Hit(g["key"], f"로그 그룹 {g['name']} 의 보존 기간이 '영구'(설정 없음)", g["region"], g["key"])
+    return [Hit(g["key"], f"로그 그룹 {g['name']} 의 보존 기간이 '영구'(설정 없음)", g["region"], g["key"], {"name": g["name"]})
             for g in _of_type(ctx, "log_group") if g["props"].get("retention_days") is None]
 
 
@@ -87,7 +90,8 @@ def iam_key_old(ctx: Context) -> list[Hit]:
             continue
         age = (ctx.now - dt.datetime.fromisoformat(created)).days
         if age > KEY_MAX_AGE_DAYS:
-            hits.append(Hit(k["key"], f"{k['name']}: 활성 액세스 키가 {age}일째 교체되지 않음", "global", k["key"]))
+            hits.append(Hit(k["key"], f"{k['name']}: 활성 액세스 키가 {age}일째 교체되지 않음", "global", k["key"],
+                            {"name": k["name"], "days": age}))
     return hits
 
 

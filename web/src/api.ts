@@ -1,5 +1,6 @@
 // 백엔드 /api/* 의 응답 모양과 호출 함수. 화면은 이 파일만 거쳐 서버와 이야기한다.
 import { useCallback, useEffect, useState } from "react";
+import type { Failure, Params } from "./i18n";
 
 export type Severity = "critical" | "high" | "medium" | "low";
 export type TrustLevel = "ok" | "warn" | "danger" | "unknown";
@@ -9,6 +10,9 @@ export interface Trust {
   level: TrustLevel;
   reason: string;
   at: string | null;
+  // 화면이 언어에 맞게 사유를 다시 만들 재료(옛 서버 응답에는 없을 수 있다)
+  code?: string | null;
+  params?: Params | null;
 }
 
 export interface Identity {
@@ -60,6 +64,7 @@ export interface CheckRow {
   title: string;
   count: number;
   example: string;
+  example_params?: Params | null;
   finding_id: number;
 }
 
@@ -125,6 +130,8 @@ export interface TrailEvent {
   via: string;
   is_root: boolean | number;
   reason: string;
+  reason_code?: string | null;
+  reason_params?: Params | null;
   error_code: string | null;
   resources: { type: string | null; name: string | null }[];
   request: Record<string, unknown>;
@@ -148,6 +155,7 @@ export interface Finding {
   severity: Severity;
   title: string;
   detail: string;
+  params?: Params | null;
   region: string;
   resource_key: string | null;
   status: FindingStatus;
@@ -210,25 +218,40 @@ function fromSnapshot<T>(snap: Snapshot, path: string): T {
   const base = path.split("?")[0];
   const key = Object.keys(snap.api).find((k) => k.split("?")[0] === base);
   if (key !== undefined) return snap.api[key] as T;
-  throw new Error("내보낸 사본에 없는 화면입니다 (서버를 실행하면 모두 볼 수 있습니다)");
+  throw new ApiError({ code: "export_missing", params: {}, message: "not in the exported copy" });
+}
+
+// 서버·내보낸 사본이 낸 오류: 번역에 쓸 code(+params)를 들고 다닌다
+export class ApiError extends Error {
+  failure: Failure;
+  constructor(failure: Failure) {
+    super(failure.message);
+    this.failure = failure;
+  }
+}
+
+export function toFailure(e: unknown): Failure {
+  if (e instanceof ApiError) return e.failure;
+  return { code: null, params: {}, message: e instanceof Error ? e.message : String(e) };
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const snap = readSnapshot();
   if (snap) {
-    if (init?.method && init.method !== "GET") throw new Error("내보낸 사본에서는 읽기만 됩니다");
+    if (init?.method && init.method !== "GET") throw new ApiError({ code: "export_readonly", params: {}, message: "read-only copy" });
     return fromSnapshot<T>(snap, path);
   }
   const res = await fetch(path, { credentials: "same-origin", ...init });
   if (!res.ok) {
-    let detail = `${res.status}`;
+    let failure: Failure = { code: null, params: {}, message: `${res.status}` };
     try {
-      const body = (await res.json()) as { detail?: string };
-      detail = body.detail ?? detail;
+      // 서버는 {detail, code, params} 로 답한다: 화면은 code 를 번역하고 detail 은 모르는 코드의 대비책
+      const body = (await res.json()) as { detail?: string; code?: string; params?: Params };
+      failure = { code: body.code ?? null, params: body.params ?? {}, message: body.detail ?? failure.message };
     } catch {
-      detail = (await res.text().catch(() => "")) || detail;
+      failure.message = (await res.text().catch(() => "")) || failure.message;
     }
-    throw new Error(detail);
+    throw new ApiError(failure);
   }
   return (await res.json()) as T;
 }
@@ -244,7 +267,7 @@ export function postJSON<T>(path: string, body: unknown = {}): Promise<T> {
 
 export interface ApiState<T> {
   data: T | null;
-  error: string | null;
+  error: Failure | null;
   loading: boolean;
   reload: () => void;
 }
@@ -252,10 +275,10 @@ export interface ApiState<T> {
 // 주소(path)가 바뀌면 다시 불러오는 작은 훅. 늦게 도착한 옛 응답은 버린다.
 export function useApi<T>(path: string | null): ApiState<T> {
   const [data, setData] = useState<T | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<Failure | null>(null);
   const [loading, setLoading] = useState<boolean>(path !== null);
   const [tick, setTick] = useState(0);
-  const reload = useCallback(() => setTick((t) => t + 1), []);
+  const reload = useCallback(() => setTick((n) => n + 1), []);
 
   useEffect(() => {
     if (path === null) return;
@@ -269,7 +292,7 @@ export function useApi<T>(path: string | null): ApiState<T> {
         }
       })
       .catch((e: unknown) => {
-        if (alive) setError(e instanceof Error ? e.message : String(e));
+        if (alive) setError(toFailure(e));
       })
       .finally(() => {
         if (alive) setLoading(false);

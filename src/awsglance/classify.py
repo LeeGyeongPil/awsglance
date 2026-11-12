@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 from fnmatch import fnmatch
 
@@ -93,3 +94,36 @@ def classify(detail: dict, rules: ClassifyRules | None = None) -> dict:
     if kind in ("FederatedUser", "IdentityCenterUser"):
         return out("human", uid.get("userName") or arn.rsplit("/", 1)[-1], "연동 사용자")
     return out("unknown", kind or "?", "알 수 없는 주체 유형")
+
+
+# ---- 분류 근거의 코드화 -----------------------------------------------------------
+# events.reason 열에는 위 classify() 가 만든 한국어 문장이 저장돼 있다(옛 데이터 포함).
+# 화면이 언어에 맞게 보여 주도록 저장된 문장을 (코드, 파라미터)로 되돌린다. 모르는 문장은 코드 None.
+_REASON_EXACT = {
+    "AWS 서비스 호출": "aws_service",
+    "루트 사용자": "root",
+    "IAM 사용자": "iam_user",
+    "서비스 연결 역할": "service_linked_role",
+    "SSO 사용자": "sso_user",
+    "콘솔 세션": "console_session",
+    "Lambda/ECS 실행 역할": "exec_env",
+    "역할 이름만으로 판단 불가": "role_name_unclear",
+    "연동 사용자": "federated_user",
+    "알 수 없는 주체 유형": "unknown_kind",
+}
+_REASON_PATTERNS = [
+    (re.compile(r"^설정: 사람 역할\((.*)\)$", re.S), "config_human_role"),
+    (re.compile(r"^설정: 자동 역할\((.*)\)$", re.S), "config_automated_role"),
+    (re.compile(r"^파이프라인 이름 패턴\((.*)\)$", re.S), "pipeline_name_pattern"),
+]
+
+
+def reason_info(reason: str) -> dict:
+    """저장된 분류 근거 문장 → {"code": 코드|None, "params": {...}}."""
+    if reason in _REASON_EXACT:
+        return {"code": _REASON_EXACT[reason], "params": {}}
+    for pattern, code in _REASON_PATTERNS:
+        m = pattern.match(reason or "")
+        if m:
+            return {"code": code, "params": {"role": m.group(1)}}
+    return {"code": None, "params": {}}

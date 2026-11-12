@@ -24,6 +24,19 @@ os.environ.update(_FAKE_ENV)
 
 
 @pytest.fixture(autouse=True)
+def fixed_language(monkeypatch):
+    """언어 환경 변수를 고정해 테스트가 개발자 로캘에 흔들리지 않게 한다(영어 문구 단정 유지). 끝나면 main() 의 언어 고정도 푼다."""
+    from awsglance.i18n import set_lang
+
+    for name in ("LC_ALL", "LC_MESSAGES", "LANG"):
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.setenv("AWSGLANCE_LANG", "en")
+    set_lang(None)
+    yield
+    set_lang(None)
+
+
+@pytest.fixture(autouse=True)
 def no_network(monkeypatch):
     """테스트는 오프라인이어야 한다: 내 컴퓨터(127.0.0.1·::1) 밖으로 나가는 연결은 즉시 실패시킨다."""
     real_connect = socket.socket.connect

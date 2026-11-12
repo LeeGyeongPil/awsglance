@@ -3,7 +3,9 @@
 import { useState } from "react";
 import { useApi, type ActorClass, type ChangesResponse, type FieldChange, type TrailEvent } from "../api";
 import { ActorChip, Empty, ErrorBox, Link, Loading, Tabs } from "../components/ui";
-import { fmtTime, show, typeLabel } from "../format";
+import { show, typeLabel } from "../format";
+import { eventReason, fmtTime } from "../i18n";
+import { Rich, useI18n } from "../lang";
 import { useQueryState } from "../router";
 
 type Tab = ActorClass | "all";
@@ -60,25 +62,27 @@ function resourceText(e: TrailEvent): string {
 }
 
 function EventRow({ e }: { e: TrailEvent }) {
+  const { t, lang } = useI18n();
   const [open, setOpen] = useState(false);
   return (
     <li className={e.error_code ? "event failed" : "event"}>
       <button type="button" className="event-head" onClick={() => setOpen(!open)} aria-expanded={open}>
-        <span className="muted small time">{fmtTime(e.time)}</span>
+        <span className="muted small time">{fmtTime(lang, e.time)}</span>
         <ActorChip cls={e.actor_class} via={e.via} />
         <strong>{e.actor}</strong>
-        {e.is_root ? <span className="badge sev-critical">■ 루트</span> : null}
+        {e.is_root ? <span className="badge sev-critical">{t("ch.root")}</span> : null}
         <span className="mono">{e.name}</span>
         <span className="muted small mono">{resourceText(e)}</span>
-        {e.error_code ? <span className="err small">실패: {e.error_code}</span> : null}
+        {e.error_code ? <span className="err small">{t("ch.failed", { code: e.error_code })}</span> : null}
       </button>
       {open ? (
         <div className="event-body small">
           <div>
-            분류 근거: {e.reason} · 리전 <span className="mono">{e.region}</span> · 출처 <span className="mono">{e.source}</span>
+            {t("ch.reason")}: {eventReason(t, e)} · {t("ch.region")} <span className="mono">{e.region}</span> · {t("ch.source")}{" "}
+            <span className="mono">{e.source}</span>
           </div>
           <pre className="code">{JSON.stringify(e.request, null, 2)}</pre>
-          <div className="muted">요청 파라미터는 저장 전에 비밀값 모양을 *** 로 가렸습니다.</div>
+          <div className="muted">{t("ch.redacted")}</div>
         </div>
       ) : null}
     </li>
@@ -86,6 +90,7 @@ function EventRow({ e }: { e: TrailEvent }) {
 }
 
 export default function Changes() {
+  const { t, lang } = useI18n();
   const [query, setQuery] = useQueryState();
   const tab = (query.get("tab") as Tab | null) ?? "human";
   const q = query.get("q") ?? "";
@@ -99,7 +104,7 @@ export default function Changes() {
 
   return (
     <div className="page">
-      <h1>변경 이력</h1>
+      <h1>{t("ch.title")}</h1>
       <form
         className="filters"
         onSubmit={(e) => {
@@ -108,64 +113,64 @@ export default function Changes() {
         }}
       >
         <label>
-          기간{" "}
+          {t("ch.period")}{" "}
           <select value={days} onChange={(e) => setQuery({ days: e.target.value })}>
-            <option value="1">1일</option>
-            <option value="7">7일</option>
-            <option value="14">14일</option>
-            <option value="30">30일</option>
-            <option value="90">90일</option>
+            {["1", "7", "14", "30", "90"].map((d) => (
+              <option key={d} value={d}>
+                {t(`ch.days_${d}`)}
+              </option>
+            ))}
           </select>
         </label>
         <label className="grow">
-          검색 <input type="search" value={draft} placeholder="작업·주체·자원" onChange={(e) => setDraft(e.target.value)} />
+          {t("common.search")} <input type="search" value={draft} placeholder={t("ch.search_ph")} onChange={(e) => setDraft(e.target.value)} />
         </label>
-        <button type="submit">찾기</button>
+        <button type="submit">{t("common.find")}</button>
       </form>
 
       <div className="grid-2 changes-grid">
         <section className="card">
-          <h2>CloudTrail 쓰기 이벤트</h2>
+          <h2>{t("ch.events_title")}</h2>
           <Tabs<Tab>
             value={tab}
             onChange={(v) => setQuery({ tab: v })}
             options={[
-              { value: "human", label: "사람이 한 작업", count: counts.human ?? 0 },
-              { value: "automated", label: "자동", count: counts.automated ?? 0 },
-              { value: "unknown", label: "판단 보류", count: counts.unknown ?? 0 },
-              { value: "all", label: "전체", count: total },
+              { value: "human", label: t("ch.tab_human"), count: counts.human ?? 0 },
+              { value: "automated", label: t("ch.tab_automated"), count: counts.automated ?? 0 },
+              { value: "unknown", label: t("ch.tab_unknown"), count: counts.unknown ?? 0 },
+              { value: "all", label: t("ch.tab_all"), count: total },
             ]}
           />
           {loading && !data ? <Loading /> : null}
-          {error ? <ErrorBox message={error} onRetry={reload} /> : null}
-          {data && data.events.length === 0 ? <Empty>이 기간에 해당하는 이벤트가 없습니다.</Empty> : null}
+          {error ? <ErrorBox failure={error} onRetry={reload} /> : null}
+          {data && data.events.length === 0 ? <Empty>{t("ch.no_events")}</Empty> : null}
           <ul className="events">
             {data?.events.map((e) => <EventRow key={e.event_id} e={e} />)}
           </ul>
           {tab === "unknown" ? (
             <p className="muted small">
-              판단 보류는 역할 이름만으로 사람·자동을 가를 수 없는 호출입니다. 설정 파일 <code>config.toml</code> 의 <code>[classify]</code> 에 역할 이름 패턴을 적으면 분류됩니다.
+              <Rich text={t("ch.unknown_help")} />
             </p>
           ) : null}
         </section>
 
         <section className="card">
-          <h2>자원 변경(스냅샷 비교)</h2>
+          <h2>{t("ch.res_title")}</h2>
           <p className="muted small">
-            두 번의 인벤토리 수집을 비교한 결과입니다. CloudTrail 이 놓친 변경도 결과로 잡습니다.{" "}
+            {t("ch.res_note")}{" "}
             <label>
-              <input type="checkbox" checked={noise} onChange={(e) => setQuery({ noise: e.target.checked ? "1" : null })} /> 시각만 바뀐
-              변경(노이즈)도 보기
+              <input type="checkbox" checked={noise} onChange={(e) => setQuery({ noise: e.target.checked ? "1" : null })} />{" "}
+              {t("ch.show_noise")}
             </label>
           </p>
-          {data && data.resource_changes.length === 0 ? <Empty>자원 변경이 없습니다.</Empty> : null}
+          {data && data.resource_changes.length === 0 ? <Empty>{t("ch.no_res_changes")}</Empty> : null}
           <ul className="plain changes">
             {data?.resource_changes.map((c) => (
               <li key={c.id} className={c.noise ? "noise" : undefined}>
-                <span className={`chip kind-${c.kind}`}>{c.kind === "created" ? "+ 생성" : c.kind === "deleted" ? "− 삭제" : "~ 수정"}</span>{" "}
-                <span className="muted small">{fmtTime(c.at)}</span> {typeLabel(c.type)}{" "}
+                <span className={`chip kind-${c.kind}`}>{t(`ch.kind_${c.kind}`)}</span>{" "}
+                <span className="muted small">{fmtTime(lang, c.at)}</span> {typeLabel(t, c.type)}{" "}
                 <Link to={`/resources?key=${encodeURIComponent(c.key)}`}>{c.name}</Link>
-                {c.noise ? <span className="muted small"> (노이즈)</span> : null}
+                {c.noise ? <span className="muted small"> {t("ch.noise")}</span> : null}
                 <FieldDiff fields={c.fields} />
               </li>
             ))}

@@ -27,6 +27,8 @@ class Hit:
     detail: str                 # 사람이 읽는 한 줄 근거
     region: str = "global"
     resource_key: str | None = None
+    # 화면이 언어에 맞게 문장을 다시 만들 재료(규칙 id + params). detail 은 기존대로 저장·표시용 문장
+    params: dict = field(default_factory=dict)
 
 
 @dataclass
@@ -61,5 +63,5 @@ def evaluate(ctx: Context) -> list[dict]:
         for hit in rule.check(ctx):
             out.append({"rule_id": rule.id, "severity": rule.severity, "title": rule.title,
                         "target": hit.target, "detail": hit.detail, "region": hit.region,
-                        "resource_key": hit.resource_key})
+                        "resource_key": hit.resource_key, "params": hit.params})
     return out

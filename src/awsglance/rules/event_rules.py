@@ -18,7 +18,8 @@ def root_activity(ctx: Context) -> list[Hit]:
     if not root:
         return []
     names = sorted({e["name"] for e in root})
-    return [Hit("root", f"최근 7일 루트 사용자 활동 {len(root)}건: {', '.join(names[:5])} (마지막 {root[0]['time']})")]
+    return [Hit("root", f"최근 7일 루트 사용자 활동 {len(root)}건: {', '.join(names[:5])} (마지막 {root[0]['time']})",
+                params={"count": len(root), "names": ", ".join(names[:5]), "time": root[0]["time"]})]
 
 
 def trail_tampering(ctx: Context) -> list[Hit]:
@@ -27,10 +28,14 @@ def trail_tampering(ctx: Context) -> list[Hit]:
     for e in ctx.events:  # 최신 순이라 트레일마다 가장 최근 시도가 남는다
         if e["name"] in TRAIL_TAMPER:
             trail = e["request"].get("name") or e["request"].get("trailName") or "?"
-            outcome = f"시도했으나 거부됨({e['error_code']})" if e.get("error_code") else "실행함"
+            denied = bool(e.get("error_code"))
+            outcome = f"시도했으나 거부됨({e['error_code']})" if denied else "실행함"
             hits.setdefault(trail, Hit(f"trail:{trail}",
                                        f"{e['actor']} 가 트레일 {trail} 에 {e['name']} {outcome} ({e['time']})",
-                                       e["region"]))
+                                       e["region"],
+                                       params={"actor": e["actor"], "trail": trail, "name": e["name"],
+                                               "denied": denied, "error_code": e.get("error_code"),
+                                               "time": e["time"]}))
     return list(hits.values())
 
 
@@ -39,7 +44,8 @@ def console_login_failed(ctx: Context) -> list[Hit]:
     for e in ctx.events:
         if e["name"] == "ConsoleLogin" and e.get("error_code"):
             fails[e["actor"]].append(e)
-    return [Hit(f"login:{actor}", f"{actor} 콘솔 로그인 실패 {len(es)}건 (마지막 {es[0]['time']})", es[0]["region"])
+    return [Hit(f"login:{actor}", f"{actor} 콘솔 로그인 실패 {len(es)}건 (마지막 {es[0]['time']})", es[0]["region"],
+                params={"actor": actor, "count": len(es), "time": es[0]["time"]})
             for actor, es in sorted(fails.items())]
 
 
@@ -59,7 +65,9 @@ def sg_opened_world_event(ctx: Context) -> list[Hit]:
             hits.setdefault(group, Hit(f"sg-event:{e['region']}:{group}",
                                        f"{e['actor']}({e['actor_class']}, {e['via'] or '?'}) 가 {group} 인바운드를 "
                                        f"인터넷 전체에 열었음 ({e['time']})",
-                                       e["region"], resource_key))
+                                       e["region"], resource_key,
+                                       {"actor": e["actor"], "actor_class": e["actor_class"], "via": e["via"] or "?",
+                                        "group": group, "time": e["time"]}))
     return list(hits.values())
 
 

@@ -12,6 +12,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import secrets
 import shutil
 import socket
@@ -28,6 +29,7 @@ from pathlib import Path
 
 from . import __version__
 from .config import Settings, default_data_dir, load
+from .i18n import LANGS, current_lang, early_lang, msg, resolve_lang, set_lang
 from .store import Store
 
 DEFAULT_PORT = 8730
@@ -37,9 +39,9 @@ def _port(value: str) -> int:
     try:
         port = int(value)
     except ValueError:
-        raise argparse.ArgumentTypeError(f"'{value}' is not a number; use a port between 1 and 65535") from None
+        raise argparse.ArgumentTypeError(msg("err.port_nan", value=value)) from None
     if not 1 <= port <= 65535:
-        raise argparse.ArgumentTypeError(f"{port} is out of range; use a port between 1 and 65535")
+        raise argparse.ArgumentTypeError(msg("err.port_range", port=port))
     return port
 
 
@@ -59,23 +61,67 @@ def port_is_free(host: str, port: int) -> bool:
     return True
 
 
+class _LocalizedParser(argparse.ArgumentParser):
+    """argparse with its fixed English words (usage:, options:, error: ...) taken from the message table.
+
+    English output stays exactly what argparse prints; only Korean is rewritten.
+    """
+
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self._positionals.title = msg("arg.positional")
+        self._optionals.title = msg("arg.options")
+
+    @staticmethod
+    def _localize_usage(text: str) -> str:
+        return msg("arg.usage") + text[len("usage: "):] if text.startswith("usage: ") else text
+
+    def format_usage(self) -> str:
+        return self._localize_usage(super().format_usage())
+
+    def format_help(self) -> str:
+        return self._localize_usage(super().format_help())
+
+    def error(self, message: str):
+        if current_lang() == "ko":
+            message = self._translate(message)
+        self.print_usage(sys.stderr)
+        self.exit(2, msg("arg.error", prog=self.prog, message=message) + "\n")
+
+    @staticmethod
+    def _translate(message: str) -> str:
+        """Rewrite argparse's own sentences; messages from our own _port() checks are already translated."""
+        if m := re.fullmatch(r"unrecognized arguments: (.*)", message):
+            return msg("arg.unrecognized", value=m[1])
+        if m := re.fullmatch(r"argument (.+?): invalid choice: (.+?) \(choose from (.*)\)", message):
+            return msg("arg.invalid_choice", name=m[1], value=m[2], choices=m[3])
+        if m := re.fullmatch(r"argument (.+?): expected one argument", message):
+            return msg("arg.expected_one", name=m[1])
+        if m := re.fullmatch(r"the following arguments are required: (.*)", message):
+            return msg("arg.required", value=m[1])
+        if m := re.fullmatch(r"argument (.+?): (.*)", message, flags=re.S):
+            return msg("arg.argument", name=m[1], value=m[2])
+        return message
+
+
 def parse_args(argv: list[str] | None) -> argparse.Namespace:
-    p = argparse.ArgumentParser(prog="awsglance", description="Read-only dashboard for one AWS account.")
-    p.add_argument("command", nargs="?", default="serve", choices=["serve", "policy", "export"],
-                   help="serve (default); policy: print the minimal IAM policy JSON; "
-                        "export: write a static copy that opens from file:// (see --out)")
-    p.add_argument("--demo", action="store_true", help="practice mode with a fictional example account (no credentials)")
-    p.add_argument("--profile", default=os.environ.get("AWS_PROFILE"), help="AWS profile name (default: AWS_PROFILE)")
-    p.add_argument("--regions", default="", help="comma-separated regions (default: all enabled regions)")
-    p.add_argument("--host", default="127.0.0.1", help="bind address (default 127.0.0.1; others require a token)")
-    p.add_argument("--port", type=_port, default=DEFAULT_PORT, help=f"listen port 1-65535 (default {DEFAULT_PORT})")
-    p.add_argument("--out", type=Path, default=Path("awsglance-export"),
-                   help="export: output folder; index.html is written inside (default ./awsglance-export)")
-    p.add_argument("--allow-host", action="append", default=[], help="extra Host header to accept (repeatable)")
-    p.add_argument("--data-dir", type=Path, default=None, help="where the SQLite DB lives (default ~/.local/share/awsglance)")
-    p.add_argument("--no-browser", action="store_true", help="do not open a browser tab")
-    p.add_argument("--selftest", action="store_true", help="start, check every screen API, print SELFTEST_OK and exit")
-    p.add_argument("--version", action="version", version=f"awsglance {__version__}")
+    # --help 도 번역하려면 argparse 가 돌기 전에 --lang 을 먼저 읽어야 한다
+    set_lang(resolve_lang(early_lang(sys.argv[1:] if argv is None else argv)))  # argv 가 None 이면 실제 명령줄
+    p = _LocalizedParser(prog="awsglance", description=msg("help.description"), add_help=False)
+    p.add_argument("-h", "--help", action="help", help=msg("help.show_help"))
+    p.add_argument("command", nargs="?", default="serve", choices=["serve", "policy", "export"], help=msg("help.command"))
+    p.add_argument("--demo", action="store_true", help=msg("help.demo"))
+    p.add_argument("--profile", default=os.environ.get("AWS_PROFILE"), help=msg("help.profile"))
+    p.add_argument("--regions", default="", help=msg("help.regions"))
+    p.add_argument("--host", default="127.0.0.1", help=msg("help.host"))
+    p.add_argument("--port", type=_port, default=DEFAULT_PORT, help=msg("help.port", default=DEFAULT_PORT))
+    p.add_argument("--out", type=Path, default=Path("awsglance-export"), help=msg("help.out"))
+    p.add_argument("--allow-host", action="append", default=[], help=msg("help.allow_host"))
+    p.add_argument("--data-dir", type=Path, default=None, help=msg("help.data_dir"))
+    p.add_argument("--no-browser", action="store_true", help=msg("help.no_browser"))
+    p.add_argument("--selftest", action="store_true", help=msg("help.selftest"))
+    p.add_argument("--lang", choices=LANGS, default=None, help=msg("help.lang"))
+    p.add_argument("--version", action="version", version=f"awsglance {__version__}", help=msg("help.version"))
     return p.parse_args(argv)
 
 
@@ -86,8 +132,7 @@ def _data_folder_errors(data_dir: Path) -> Iterator[None]:
         yield
     except (OSError, sqlite3.OperationalError) as exc:
         reason = exc.strerror if isinstance(exc, OSError) and exc.strerror else str(exc)
-        print(f"Cannot create or open the data folder {data_dir}: {reason}. "
-              "Use --data-dir <folder> or set AWSGLANCE_DATA_DIR to a folder you can write to.", file=sys.stderr)
+        print(msg("err.data_folder", path=data_dir, reason=reason), file=sys.stderr)
         raise SystemExit(2) from None
 
 
@@ -119,9 +164,8 @@ def prepare_demo(data_dir: Path) -> Store:
             shutil.rmtree(demo_dir)
         store = Store(demo_dir / "awsglance.db")
     summary = load_demo(store)
-    print(f"[demo] fictional account {summary['account']}: {summary['resources']} resources, "
-          f"{summary['events']} CloudTrail events, {summary['changes']} resource changes "
-          f"(practice mode, mock data — no AWS calls)", flush=True)
+    print(msg("out.demo_summary", account=summary["account"], resources=summary["resources"],
+              events=summary["events"], changes=summary["changes"]), flush=True)
     return store
 
 
@@ -141,18 +185,14 @@ def prepare_live(args, data_dir: Path, settings: Settings):
         session = AwsSession(profile=args.profile, region=os.environ.get("AWS_REGION") or None)
     except ProfileNotFound:  # 프로필 이름 오타: traceback 대신 있는 프로필을 보여 준다
         available = available_profiles()
-        listed = ", ".join(available) if available else "none found in your AWS config files"
-        print(f"Profile '{args.profile}' not found. Available: {listed}.\n"
-              "Use --profile <name>, set AWS_PROFILE, or create one with `aws configure sso`. "
-              "To look around first without AWS: awsglance --demo", file=sys.stderr)
+        listed = ", ".join(available) if available else msg("err.profile_none")
+        print(msg("err.profile_missing", profile=args.profile, available=listed), file=sys.stderr)
         raise SystemExit(2)
     try:
         who = session.identity()
     except (ClientError, BotoCoreError) as exc:
         session.close()
-        print(f"Could not connect to AWS: {exc}\n"
-              "Check your credentials (AWS_PROFILE, `aws sso login`, environment variables), "
-              "or try the practice mode first: awsglance --demo", file=sys.stderr)
+        print(msg("err.aws_connect", reason=exc), file=sys.stderr)
         raise SystemExit(2)
     regions = [r.strip() for r in args.regions.split(",") if r.strip()] or settings.regions
     if not regions:
@@ -168,14 +208,14 @@ def prepare_live(args, data_dir: Path, settings: Settings):
         store.set_meta("mode", "live")
         store.set_meta("identity", who)
         store.set_meta("regions", regions)
-    print(f"Connected: account {who['account']} as {who['arn']}", flush=True)
-    print(f"Regions: {', '.join(regions)} — checking permissions…", flush=True)
+    print(msg("out.connected", account=who["account"], arn=who["arn"]), flush=True)
+    print(msg("out.regions", regions=", ".join(regions)), flush=True)
     perms = check_permissions(session, regions[0], who["account"])
     store.set_meta("permissions", perms)
     store.set_meta("permissions_at", iso(now_utc()))
     denied = [p["collector"] for p in perms if p["status"] == "denied"]
     if denied:
-        print(f"  denied: {', '.join(denied)} — see the setup screen or run `awsglance policy`", flush=True)
+        print(msg("out.denied", collectors=", ".join(denied)), flush=True)
 
     jobs = [
         Job("inventory", settings.inventory_minutes * 60,
@@ -227,8 +267,8 @@ def selftest(app) -> int:
         changes = len(data["changes"]["events"]) + len(data["changes"]["resource_changes"])
         open_findings = len(data["findings"]["items"])
         human_changes = len(human["events"])
-        print(f"  setup: {len(data['setup']['permissions'])} permission checks, overview trust={data['overview']['trust']['level']}, "
-              f"spa_deeplink={'ok' if spa_ok else 'missing'}")
+        print(msg("out.selftest_setup", perms=len(data["setup"]["permissions"]), trust=data["overview"]["trust"]["level"],
+                  spa=msg("out.spa_ok" if spa_ok else "out.spa_missing")))
         ok = (screens == 5 and resources >= 30 and changes >= 10 and open_findings >= 8 and human_changes >= 3 and spa_ok)
         line = (f"screens={screens} resources={resources} changes={changes} findings={open_findings} "
                 f"human_changes={human_changes}")
@@ -260,8 +300,7 @@ def run_export(args) -> int:
             data_dir = Path(args.data_dir or default_data_dir()).expanduser()
             db = data_dir / "awsglance.db"
             if not db.is_file():
-                print(f"No collected data at {db}. Run awsglance --profile <name> first and let it collect, "
-                      "or try: awsglance export --demo", file=sys.stderr)
+                print(msg("err.no_data", path=db), file=sys.stderr)
                 return 2
             with _data_folder_errors(data_dir):
                 store = Store(db)
@@ -270,11 +309,16 @@ def run_export(args) -> int:
             finally:
                 store.close()
     except ExportError as exc:
-        print(f"Export failed: {exc}", file=sys.stderr)
+        print(msg("err.export_failed", reason=exc), file=sys.stderr)
+        return 2
+    except OSError as exc:  # 출력 폴더에 쓸 수 없음(권한·읽기 전용 디스크 등): 사용자가 고른 경로를 보여 준다
+        where = exc.filename if isinstance(exc.filename, (str, Path)) else args.out
+        reason = exc.strerror or str(exc)
+        print(msg("err.export_write", path=where, reason=reason), file=sys.stderr)
         return 2
     base = target.resolve().as_uri()
-    print(f"Exported a read-only copy: {target}")
-    print("Open it in a browser (no server needed). Screens:")
+    print(msg("out.exported", path=target))
+    print(msg("out.export_open"))
     for route in HASH_ROUTES:
         print(f"  {base}{route}")
     return 0
@@ -283,7 +327,16 @@ def run_export(args) -> int:
 # ---- main --------------------------------------------------------------------
 
 def main(argv: list[str] | None = None) -> int:
+    """진입점: 언어를 정하고(--lang > AWSGLANCE_LANG > LANG) 본 작업을 돌린다. 끝나면 언어 고정을 푼다."""
+    try:
+        return _main(argv)
+    finally:
+        set_lang(None)  # 프로세스 안에서 main 을 여러 번 불러도(테스트) 이전 --lang 이 남지 않게
+
+
+def _main(argv: list[str] | None) -> int:
     args = parse_args(argv)
+    set_lang(resolve_lang(args.lang))
     if args.command == "policy":
         from .aws.policy import policy_json
 
@@ -309,7 +362,7 @@ def main(argv: list[str] | None = None) -> int:
         store = prepare_demo(data_dir)
     else:
         if args.selftest:
-            print("--selftest needs --demo (it never calls AWS)", file=sys.stderr)
+            print(msg("err.selftest_needs_demo"), file=sys.stderr)
             return 2
         store, scheduler, session = prepare_live(args, data_dir, settings)
 
@@ -321,12 +374,11 @@ def main(argv: list[str] | None = None) -> int:
         import uvicorn
 
         if not port_is_free(args.host, args.port):
-            print(f"Port {args.port} is in use — pick another with --port (for example --port {args.port + 1}).",
-                  file=sys.stderr)
+            print(msg("err.port_in_use", port=args.port, next=args.port + 1), file=sys.stderr)
             return 2
         shown = "127.0.0.1" if args.host in ("0.0.0.0", "::") else args.host
         url = f"http://{shown}:{args.port}/" + (f"?token={token}" if token else "")
-        print(f"awsglance {__version__} — open {url}  (Ctrl+C to stop)", flush=True)
+        print(msg("out.listening", version=__version__, url=url), flush=True)
         if scheduler:
             scheduler.start()
         timer = None

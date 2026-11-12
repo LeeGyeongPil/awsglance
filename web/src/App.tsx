@@ -1,8 +1,9 @@
-// 화면 틀: 위쪽 띠(연습 모드 표시) → 머리글(이름·메뉴·신뢰 신호·테마) → 주소에 맞는 화면 하나.
+// 화면 틀: 위쪽 띠(연습 모드 표시) → 머리글(이름·메뉴·신뢰 신호·언어·테마) → 주소에 맞는 화면 하나.
 import { useEffect, useState } from "react";
 import { useApi, type Status } from "./api";
 import { Link, TrustDot } from "./components/ui";
-import { ago } from "./format";
+import { ago, LANGS, trustReason, type Lang } from "./i18n";
+import { useI18n } from "./lang";
 import { useLocation } from "./router";
 import Changes from "./routes/Changes";
 import Findings from "./routes/Findings";
@@ -11,11 +12,11 @@ import Resources from "./routes/Resources";
 import Setup from "./routes/Setup";
 
 const NAV = [
-  { to: "/", label: "개요" },
-  { to: "/resources", label: "자원" },
-  { to: "/changes", label: "변경 이력" },
-  { to: "/findings", label: "문제" },
-  { to: "/setup", label: "연결" },
+  { to: "/", key: "nav.overview" },
+  { to: "/resources", key: "nav.resources" },
+  { to: "/changes", key: "nav.changes" },
+  { to: "/findings", key: "nav.findings" },
+  { to: "/setup", key: "nav.setup" },
 ];
 
 type Theme = "light" | "dark";
@@ -36,6 +37,7 @@ function initialTheme(): Theme {
 }
 
 function Page({ path }: { path: string }) {
+  const { t } = useI18n();
   if (path === "/" || path === "/overview") return <Overview />;
   if (path === "/resources") return <Resources />;
   if (path === "/changes") return <Changes />;
@@ -43,14 +45,15 @@ function Page({ path }: { path: string }) {
   if (path === "/setup") return <Setup />;
   return (
     <div className="page">
-      <h1>없는 화면입니다</h1>
-      <Link to="/">개요로 가기</Link>
+      <h1>{t("app.not_found")}</h1>
+      <Link to="/">{t("app.go_overview")}</Link>
     </div>
   );
 }
 
 export default function App() {
   const { path } = useLocation();
+  const { t, lang, setLang } = useI18n();
   const status = useApi<Status>("/api/status");
   const [theme, setTheme] = useState<Theme>(initialTheme);
 
@@ -77,7 +80,7 @@ export default function App() {
     <>
       {s?.mode === "demo" ? (
         <div className="demo-banner" role="note">
-          예제 계정(연습 모드) — 가상의 AWS 계정 {s.identity?.account} 의 mock 데이터입니다. AWS 를 호출하지 않습니다.
+          {t("app.demo_banner", { account: s.identity?.account ?? "" })}
         </div>
       ) : null}
       <header className="topbar">
@@ -87,28 +90,39 @@ export default function App() {
           </span>
           awsglance
         </Link>
-        <nav aria-label="화면">
+        <nav aria-label={t("app.nav_label")}>
           {NAV.map((n) => (
             <Link key={n.to} to={n.to} className={active(n.to) ? "nav active" : "nav"}>
-              {n.label}
+              {t(n.key)}
             </Link>
           ))}
         </nav>
         <div className="topbar-right">
           {s ? (
             <>
-              <TrustDot level={s.trust.level} reason={s.trust.reason} />
-              <span className="muted small mono" title="마지막 인벤토리 수집">
-                {s.identity?.account ?? "—"} · {s.collecting ? `수집 중(${s.collecting})` : `수집 ${ago(s.last_inventory)}`}
+              <TrustDot level={s.trust.level} reason={trustReason(t, s.trust)} />
+              <span className="muted small mono" title={t("app.last_inventory")}>
+                {s.identity?.account ?? "—"} ·{" "}
+                {s.collecting ? t("app.collecting", { job: s.collecting }) : t("app.collected", { ago: ago(lang, s.last_inventory) })}
               </span>
             </>
           ) : null}
+          <label className="lang-picker">
+            <span className="visually-hidden">{t("lang.label")}</span>
+            <select value={lang} onChange={(e) => setLang(e.target.value as Lang)} aria-label={t("lang.label")}>
+              {LANGS.map((code) => (
+                <option key={code} value={code}>
+                  {t(`lang.${code}`)}
+                </option>
+              ))}
+            </select>
+          </label>
           <button
             type="button"
             className="icon-btn"
             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-            aria-label={theme === "dark" ? "밝은 테마로" : "어두운 테마로"}
-            title="테마 바꾸기"
+            aria-label={theme === "dark" ? t("app.theme_to_light") : t("app.theme_to_dark")}
+            title={t("app.theme_title")}
           >
             {theme === "dark" ? "☀" : "☾"}
           </button>
@@ -118,7 +132,7 @@ export default function App() {
         <Page path={path} />
       </main>
       <footer className="footer muted small">
-        awsglance {s?.version ?? ""} · 읽기 전용(허용 목록 밖 AWS 작업은 코드에서 차단) · 이 도구는 AWS 공식 도구가 아닙니다
+        {t("app.footer", { version: s?.version ?? "" })}
       </footer>
     </>
   );

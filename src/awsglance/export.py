@@ -15,6 +15,7 @@ import re
 from pathlib import Path
 from urllib.parse import quote, unquote, urlencode
 
+from .i18n import msg
 from .store import Store, iso, now_utc
 from .web.app import STATIC_DIR, create_app
 
@@ -92,7 +93,7 @@ def render_html(snapshot: dict, static_dir: Path = STATIC_DIR) -> str:
     """Inline the built CSS and JS plus the snapshot into one HTML file (module scripts do not load from file://)."""
     index = static_dir / "index.html"
     if not index.is_file():
-        raise ExportError("Front-end build not found. Run: cd web && npm ci && npm run build")
+        raise ExportError(msg("err.export_no_front_end"))
     html = index.read_text(encoding="utf-8")
     css = js = ""
     for m in re.finditer(r'<link rel="stylesheet"[^>]*href="/(assets/[^"]+)"[^>]*>', html):
@@ -102,7 +103,7 @@ def render_html(snapshot: dict, static_dir: Path = STATIC_DIR) -> str:
         js += (static_dir / m.group(1)).read_text(encoding="utf-8")
     html = re.sub(r'<script type="module"[^>]*></script>\s*', "", html)
     if not js:
-        raise ExportError("Could not find the front-end script in static/index.html; rebuild with: cd web && npm run build")
+        raise ExportError(msg("err.export_no_front_end"))
     # "<" is escaped so no value inside the data can close the script tag early
     data = (json.dumps(snapshot, ensure_ascii=False).replace("<", "\\u003c")
             .replace("\u2028", "\\u2028").replace("\u2029", "\\u2029"))
@@ -116,7 +117,7 @@ def export_static(store: Store, out_dir: Path) -> Path:
     """Write ``<out_dir>/index.html`` and return its path."""
     out_dir = Path(out_dir).expanduser()
     if out_dir.exists() and not out_dir.is_dir():
-        raise ExportError(f"{out_dir} exists and is not a directory; pick another folder with --out")
+        raise ExportError(msg("err.export_not_dir", path=out_dir))
     html = render_html(collect_snapshot(store))
     out_dir.mkdir(parents=True, exist_ok=True)
     target = out_dir / "index.html"

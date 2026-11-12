@@ -21,7 +21,7 @@ def posture_off(ctx: Context) -> list[Hit]:
             if state == "off":
                 where = "계정 전체" if region == "global" else region
                 hits.append(Hit(f"posture:{feature}:{region}", f"{FEATURE_NAMES.get(feature, feature)} 꺼짐 — {where}",
-                                region))
+                                region, params={"feature": feature, "region": region}))
     return hits
 
 

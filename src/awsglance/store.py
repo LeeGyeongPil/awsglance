@@ -14,7 +14,7 @@ import threading
 from contextlib import contextmanager
 from pathlib import Path
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2  # 2: findings.params(JSON, NULL 허용) — 화면이 규칙 id + 파라미터로 문장을 번역
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
@@ -42,6 +42,7 @@ CREATE TABLE IF NOT EXISTS findings (
   title TEXT NOT NULL, detail TEXT NOT NULL, region TEXT NOT NULL, resource_key TEXT,
   status TEXT NOT NULL, first_seen TEXT NOT NULL, last_seen TEXT NOT NULL, resolved_at TEXT,
   reopen_count INTEGER NOT NULL DEFAULT 0, suppress_reason TEXT, suppress_until TEXT, close_reason TEXT,
+  params TEXT,
   UNIQUE(rule_id, target)
 );
 CREATE TABLE IF NOT EXISTS finding_actions (
@@ -78,11 +79,18 @@ class Store:
         self.conn.execute("PRAGMA journal_mode=WAL")
         self.conn.execute("PRAGMA foreign_keys=ON")
         self.conn.executescript(SCHEMA)  # IF NOT EXISTS — 다시 열어도 안전
+        self._migrate()
         self.set_meta("schema_version", SCHEMA_VERSION)
         for suffix in ("", "-wal", "-shm"):  # 본 파일과 WAL 보조 파일 모두 0600
             p = Path(str(self.path) + suffix)
             if p.exists():
                 os.chmod(p, 0o600)
+
+    def _migrate(self) -> None:
+        """옛 DB(버전 1)에는 findings.params 열이 없다 → 데이터를 지우지 않고 열만 추가한다. 옛 행의 params 는 NULL."""
+        cols = {r["name"] for r in self.conn.execute("PRAGMA table_info(findings)").fetchall()}
+        if "params" not in cols:
+            self.conn.execute("ALTER TABLE findings ADD COLUMN params TEXT")
 
     # ---- 기본 도구 ----------------------------------------------------------
     @contextmanager

@@ -5,13 +5,13 @@
   "description": "React front-end for awsglance. The build output is committed to src/awsglance/static so users never need Node.",
   "type": "module",
   "engines": {
-    "node": ">=20.19"
+    "node": ">=22.12"
   },
   "scripts": {
     "dev": "vite",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "build": "tsc --noEmit -p tsconfig.json && vite build",
-    "test": "tsc --noEmit -p tsconfig.json"
+    "test": "tsc --noEmit -p tsconfig.json && node --experimental-strip-types --test \"test/*.test.ts\""
   },
   "dependencies": {
     "react": "19.3.1",

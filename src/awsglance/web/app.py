@@ -19,9 +19,11 @@ from urllib.parse import urlsplit
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse, Response
 from fastapi.staticfiles import StaticFiles
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from .. import __version__, findings, related
 from ..aws.policy import build_policy
+from ..classify import reason_info
 from ..collect.inventory import GLOBAL_TYPES
 from ..diff import summarize
 from ..rules import SEVERITIES, all_rules
@@ -31,6 +33,33 @@ STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
 LOOPBACK_HOSTS = {"127.0.0.1", "localhost", "::1"}
 TOKEN_COOKIE = "awsglance_token"
 SEVERITY_ORDER = {s: i for i, s in enumerate(SEVERITIES)}
+
+# HTTP 오류는 사람이 읽는 detail(기존 그대로)에 기계가 읽는 code(+params)를 더해 내려보낸다 → 화면이 언어별로 번역
+ERROR_CODES = {
+    "resource not found": "resource_not_found",
+    "finding not found": "finding_not_found",
+    "collection is not running in this mode (demo)": "collect_unavailable",
+    "no such API": "no_such_api",
+    "invalid_body": "invalid_body",
+}
+
+
+def action_error_info(detail: str) -> tuple[str, dict]:
+    """FindingActionError 문구 → (code, params). 'days_must_be_1_to_30' → ('days_out_of_range', {'max': 30})."""
+    if detail.startswith("days_must_be_1_to_"):
+        return "days_out_of_range", {"max": int(detail.rsplit("_", 1)[-1])}
+    return detail, {}
+
+
+def _params(raw: str | None) -> dict | None:
+    """findings.params(JSON 문자열 또는 NULL) → dict 또는 None. 깨진 값은 None 으로 두어 저장된 문장을 보여 준다."""
+    if not raw:
+        return None
+    try:
+        value = json.loads(raw)
+    except ValueError:
+        return None
+    return value if isinstance(value, dict) else None
 
 
 def is_loopback(host: str) -> bool:
@@ -56,6 +85,14 @@ def create_app(store: Store, bind_host: str = "127.0.0.1", token: str | None = N
         hosts.add(bind_host.strip("[]").lower())
 
     app = FastAPI(title="awsglance", version=__version__, docs_url=None, redoc_url=None, openapi_url=None)
+
+    @app.exception_handler(StarletteHTTPException)
+    async def http_error(request: Request, exc: StarletteHTTPException):
+        detail = exc.detail if isinstance(exc.detail, str) else str(exc.detail)
+        body = {"detail": detail}
+        if detail in ERROR_CODES:
+            body["code"] = ERROR_CODES[detail]
+        return JSONResponse(body, exc.status_code, headers=getattr(exc, "headers", None))
 
     # ---- 접근 보호 미들웨어 ---------------------------------------------------
     @app.middleware("http")
@@ -98,19 +135,22 @@ def create_app(store: Store, bind_host: str = "127.0.0.1", token: str | None = N
         """맨 위 점 하나: ok(정상)·warn(주의)·danger(위험)·unknown(판단 보류) + 가장 큰 사유."""
         last = store.get_meta("last_inventory")
         if not last:
-            return {"level": "unknown", "reason": "아직 수집한 적이 없음", "at": None}
+            return {"level": "unknown", "reason": "아직 수집한 적이 없음", "at": None, "code": "never_collected", "params": {}}
         if store.get_meta("mode") != "demo":
             age = now_utc() - parse(last)
             if age > dt.timedelta(hours=3):
-                return {"level": "unknown", "reason": f"마지막 수집이 {int(age.total_seconds() // 3600)}시간 전 — 자격증명·권한 확인",
-                        "at": last}
+                hours = int(age.total_seconds() // 3600)
+                return {"level": "unknown", "reason": f"마지막 수집이 {hours}시간 전 — 자격증명·권한 확인",
+                        "at": last, "code": "stale", "params": {"hours": hours}}
         rows = sorted(open_findings(), key=lambda f: SEVERITY_ORDER.get(f["severity"], 9))
         if not rows:
-            return {"level": "ok", "reason": "열린 문제 없음", "at": last}
+            return {"level": "ok", "reason": "열린 문제 없음", "at": last, "code": "no_open_findings", "params": {}}
         top = rows[0]
         count = sum(1 for f in rows if f["severity"] == top["severity"])
         level = "danger" if top["severity"] in ("critical", "high") else "warn"
-        return {"level": level, "reason": f"{top['severity']} {count}건 — {top['title']}", "at": last}
+        return {"level": level, "reason": f"{top['severity']} {count}건 — {top['title']}", "at": last,
+                "code": "top_finding",
+                "params": {"severity": top["severity"], "count": count, "rule_id": top["rule_id"], "title": top["title"]}}
 
     # ---- API: 상태·연결 ------------------------------------------------------
     @app.get("/api/status")
@@ -170,7 +210,8 @@ def create_app(store: Store, bind_host: str = "127.0.0.1", token: str | None = N
         for rule_id, items in by_rule.items():
             items.sort(key=lambda f: f["last_seen"], reverse=True)
             checks.append({"rule_id": rule_id, "severity": items[0]["severity"], "title": items[0]["title"],
-                           "count": len(items), "example": items[0]["detail"], "finding_id": items[0]["id"]})
+                           "count": len(items), "example": items[0]["detail"], "finding_id": items[0]["id"],
+                           "example_params": _params(items[0].get("params"))})
         checks.sort(key=lambda c: (SEVERITY_ORDER.get(c["severity"], 9), -c["count"]))
         # 14일 변경 막대: 날짜별 사람/자동/판단 보류 CloudTrail 쓰기 + 스냅샷 diff 변경
         days = [(now - dt.timedelta(days=i)).date().isoformat() for i in range(13, -1, -1)]
@@ -236,8 +277,14 @@ def create_app(store: Store, bind_host: str = "127.0.0.1", token: str | None = N
         events_match = related.support(r["type"])
         events = related_events(r) if events_match == "exact" else []
         linked = store.query("SELECT * FROM findings WHERE resource_key=? ORDER BY status, severity", (key,))
+        for f in linked:
+            f["params"] = _params(f.get("params"))
         return {"resource": r, "changes": changes, "events": events, "events_match": events_match,
                 "findings": linked}
+
+    def _add_reason_code(e: dict) -> None:
+        info = reason_info(e["reason"])
+        e["reason_code"], e["reason_params"] = info["code"], info["params"]
 
     def related_events(r: dict, limit: int = 50, batch: int = 200) -> list[dict]:
         """후보를 SQL 로 좁힌 뒤(따옴표째 JSON 값 LIKE) related.match 로 최종 판정, 최신순 최대 limit 건.
@@ -258,6 +305,7 @@ def create_app(store: Store, bind_host: str = "127.0.0.1", token: str | None = N
             for e in rows:
                 e["resources"], e["request"] = json.loads(e["resources"]), json.loads(e["request"])
                 if related.match(r, e):
+                    _add_reason_code(e)
                     out.append(e)
                     if len(out) >= limit:
                         break
@@ -284,6 +332,7 @@ def create_app(store: Store, bind_host: str = "127.0.0.1", token: str | None = N
         for e in events:
             e["resources"], e["request"] = json.loads(e["resources"]), json.loads(e["request"])
             e["is_root"], e["read_only"] = bool(e["is_root"]), bool(e["read_only"])
+            _add_reason_code(e)
         csql = "SELECT * FROM resource_changes WHERE at >= ?" + ("" if noise else " AND noise = 0")
         res_changes = store.query(csql + " ORDER BY at DESC, id DESC LIMIT 500", (since,))
         for c in res_changes:
@@ -298,6 +347,7 @@ def create_app(store: Store, bind_host: str = "127.0.0.1", token: str | None = N
     def _finding_out(f: dict) -> dict:
         rule = rules_by_id.get(f["rule_id"])
         f["rule"] = rule.public() if rule else None
+        f["params"] = _params(f.get("params"))  # 규칙 id + params 로 화면이 번역(NULL 이면 저장된 detail 을 그대로)
         return f
 
     @app.get("/api/findings")
@@ -335,7 +385,8 @@ def create_app(store: Store, bind_host: str = "127.0.0.1", token: str | None = N
             fn(store, *args)
         except findings.FindingActionError as exc:
             code = 404 if str(exc) == "not_found" else 400
-            return JSONResponse({"detail": str(exc)}, code)
+            err_code, err_params = action_error_info(str(exc))
+            return JSONResponse({"detail": str(exc), "code": err_code, "params": err_params}, code)
         return {"ok": True}
 
     async def _json_body(request: Request) -> dict:

@@ -1,69 +1,28 @@
-// 화면 글자 도우미: 시각·심각도·자원 종류 이름 등.
-import type { ActorClass, Severity } from "./api";
+// 화면 글자 도우미: 자원 종류·보안 기능 이름, 값 표시. 사용자에게 보이는 문구는 i18n.ts 의 표에서 온다.
+import type { Translator } from "./i18n";
 
-export const SEVERITY_LABEL: Record<Severity, string> = {
-  critical: "치명",
-  high: "높음",
-  medium: "보통",
-  low: "낮음",
-};
-
-export const SEVERITY_ICON: Record<Severity, string> = {
+export const SEVERITY_ICON = {
   critical: "■",
   high: "▲",
   medium: "◆",
   low: "●",
-};
+} as const;
 
-export const ACTOR_LABEL: Record<ActorClass, string> = {
-  human: "사람",
-  automated: "자동",
-  unknown: "판단 보류",
-};
-
-export const TYPE_LABEL: Record<string, string> = {
-  ec2_instance: "EC2 인스턴스",
-  vpc: "VPC",
-  subnet: "서브넷",
-  security_group: "보안 그룹",
-  rds_instance: "RDS DB",
-  lambda_function: "Lambda 함수",
-  load_balancer: "로드 밸런서",
-  log_group: "로그 그룹",
-  s3_bucket: "S3 버킷",
-  iam_user: "IAM 사용자",
-  iam_access_key: "액세스 키",
-  iam_role: "IAM 역할",
-};
-
-export const FEATURE_LABEL: Record<string, string> = {
-  guardduty: "GuardDuty",
-  securityhub: "Security Hub",
-  config: "AWS Config",
-  accessanalyzer: "Access Analyzer",
-  cloudtrail_multi_region: "다중 리전 트레일",
-  s3_account_public_access_block: "계정 S3 공개 차단",
-};
-
-export function typeLabel(t: string): string {
-  return TYPE_LABEL[t] ?? t;
+export function severityLabel(t: Translator, severity: string): string {
+  return t.has(`sev.${severity}`) ? t(`sev.${severity}`) : severity;
 }
 
-export function fmtTime(iso: string | null | undefined): string {
-  if (!iso) return "—";
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return iso;
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+export function actorLabel(t: Translator, cls: string): string {
+  return t.has(`actor.${cls}`) ? t(`actor.${cls}`) : cls;
 }
 
-export function ago(iso: string | null | undefined): string {
-  if (!iso) return "—";
-  const sec = Math.max(0, (Date.now() - new Date(iso).getTime()) / 1000);
-  if (sec < 60) return "방금";
-  if (sec < 3600) return `${Math.floor(sec / 60)}분 전`;
-  if (sec < 86400) return `${Math.floor(sec / 3600)}시간 전`;
-  return `${Math.floor(sec / 86400)}일 전`;
+// 모르는 새 종류는 코드 이름 그대로 보여 준다
+export function typeLabel(t: Translator, resourceType: string): string {
+  return t.has(`type.${resourceType}`) ? t(`type.${resourceType}`) : resourceType;
+}
+
+export function featureLabel(t: Translator, feature: string): string {
+  return t.has(`feature.${feature}`) ? t(`feature.${feature}`) : feature;
 }
 
 export function show(value: unknown): string {

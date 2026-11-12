@@ -114,6 +114,7 @@ def test_exported_page_opens_in_headless_browser(demo_store, tmp_path):
         with sync_api.sync_playwright() as pw:
             browser = pw.chromium.launch()
             page = browser.new_page()
+            page.add_init_script("window.localStorage.setItem('awsglance-lang', 'ko')")  # 화면 문구 단정은 한국어로 고정
             errors = []
             page.on("pageerror", lambda e: errors.append(str(e)))
             for route, needle in (("#/", "개요"), ("#/changes?tab=human", "alice"), ("#/findings", "열림"),
