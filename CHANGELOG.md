@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.2.1 — 2026-11-17
+- 수정: 비로컬 바인드에서 데이터 폴더의 token 경로가 디렉터리(또는 읽을 수 없는 파일)일 때 트레이스백 대신 --data-dir/AWSGLANCE_DATA_DIR 안내(영어·한국어)와 종료 코드 2
+
 ## 0.2.0 — 2026-11-12
 - 추가: 영어·한국어 화면 언어 선택. 웹 화면 머리말에 언어 메뉴(English / 한국어)가 생겼고, 고른 값은 브라우저 localStorage(`awsglance-lang`)에 저장됩니다. 저장값이 없을 때만 브라우저 언어(ko 로 시작하면 한국어, 아니면 영어)로 정합니다. 주소에 `?lang=ko` 를 붙여도 됩니다. `awsglance export` 사본도 같은 화면이라 같은 방식으로 따라갑니다.
 - 추가: CLI 언어 — `--lang en|ko` > `AWSGLANCE_LANG` > `LC_ALL`·`LC_MESSAGES`·`LANG` 순, 한국어가 아니면 영어. 도움말(`usage:`·섹션 제목 포함)·진행 출력·인자 오류·오류 메시지(데이터 폴더, 프로필 없음, AWS 연결 실패, 포트 사용 중, export 실패, `--selftest` 는 `--demo` 필요)가 두 언어로 나옵니다.
