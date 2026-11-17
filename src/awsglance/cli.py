@@ -142,8 +142,9 @@ def _token_for(data_dir: Path) -> str:
     if env:
         return env
     path = data_dir / "token"
-    if path.exists():
-        return path.read_text(encoding="utf-8").strip()
+    with _data_folder_errors(data_dir):
+        if path.exists():
+            return path.read_text(encoding="utf-8").strip()
     token = secrets.token_urlsafe(24)
     with _data_folder_errors(data_dir):
         fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)

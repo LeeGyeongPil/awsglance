@@ -246,3 +246,16 @@ def test_export_with_readonly_db_gives_hint(tmp_path, capsys):
     finally:
         db.chmod(0o600)
     _assert_data_folder_hint(capsys, code, data)
+
+
+@pytest.mark.parametrize("lang,needle", [("en", "Cannot create or open"), ("ko", "데이터 폴더")])
+def test_token_path_is_a_directory_gives_hint(tmp_path, capsys, monkeypatch, lang, needle):
+    monkeypatch.delenv("AWSGLANCE_TOKEN", raising=False)
+    (tmp_path / "token").mkdir()
+    argv = ["--demo", "--no-browser", "--host", "0.0.0.0", "--data-dir", str(tmp_path), "--lang", lang]
+    code = _exit_code(argv)
+    err = capsys.readouterr().err
+    assert code == 2
+    assert needle in err and str(tmp_path) in err
+    assert "--data-dir" in err and "AWSGLANCE_DATA_DIR" in err
+    assert "Traceback" not in err
