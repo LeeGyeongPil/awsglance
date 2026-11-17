@@ -146,3 +146,15 @@ def test_network_guard_blocks_outside_connections():
 
     with socket.socket() as s, pytest.raises(RuntimeError, match="network access"):
         s.connect(("203.0.113.1", 443))
+
+
+def test_selftest_without_data_dir_leaves_no_temp_folder(tmp_path, capsys, monkeypatch):
+    """--selftest 를 --data-dir 없이 돌려도 만든 임시 폴더는 종료 시 지워진다."""
+    import tempfile
+    scratch = tmp_path / "scratch"
+    scratch.mkdir()
+    monkeypatch.setattr(tempfile, "tempdir", str(scratch))
+    monkeypatch.delenv("AWSGLANCE_DATA_DIR", raising=False)
+    assert main(["--demo", "--selftest"]) == 0
+    assert "SELFTEST_OK" in capsys.readouterr().out
+    assert list(scratch.glob("awsglance-selftest-*")) == []
