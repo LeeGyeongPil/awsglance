@@ -30,7 +30,7 @@ uv run awsglance --demo --no-browser --port 8742
 ```
 ```
 [demo] fictional account 123456789012: 47 resources, 26 CloudTrail events, 8 resource changes (practice mode, mock data — no AWS calls)
-awsglance 0.2.1 — open http://127.0.0.1:8742/  (Ctrl+C to stop)
+awsglance 0.2.2 — open http://127.0.0.1:8742/  (Ctrl+C to stop)
 ```
 위 출력은 영어 시스템에서의 모습입니다. 한국어 시스템이거나 `--lang ko` 를 주면 같은 줄이 한국어로 나옵니다(`[demo] 가상 계정 123456789012: 자원 47개, …`). 브라우저에서 출력된 주소를 열면 맨 위에 보인 개요 화면이 나타납니다. `--no-browser` 를 빼면 브라우저가 자동으로 열립니다.
 
@@ -206,7 +206,6 @@ flowchart LR
 - 일부 문구는 영어로만 나옵니다: 접근 보호 장치의 일반 텍스트 HTTP 오류(`Host '…' is not allowed. Start awsglance with --allow-host …`, `Unauthorized`, `Forbidden origin`). 명령줄 `--help` 의 제목과 흔한 인자 오류는 `--lang` 을 따르고, 표에 없는 argparse 오류 사유는 argparse 원문으로 보입니다. 한국어 문장으로 저장돼 있던 이벤트 분류 근거는 코드로 대응시켜 번역하고, 표에 없는 문장은 저장된 그대로 보입니다.
 - CLI 출력 문구를 비교하는 스크립트에는 `AWSGLANCE_LANG=en` 을 지정하세요. 한국어 시스템에서는 기본값이 이제 한국어입니다.
 - `--data-dir` 로 준 폴더는 소유자 전용(0700) 권한으로 맞춥니다.
-- `--selftest` 는 임시 폴더를 남깁니다(수정 예정).
 
 ## 자주 겪는 문제
 | 증상 | 원인 | 해결 |

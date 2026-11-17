@@ -30,7 +30,7 @@ uv run awsglance --demo --no-browser --port 8742
 ```
 ```
 [demo] fictional account 123456789012: 47 resources, 26 CloudTrail events, 8 resource changes (practice mode, mock data — no AWS calls)
-awsglance 0.2.1 — open http://127.0.0.1:8742/  (Ctrl+C to stop)
+awsglance 0.2.2 — open http://127.0.0.1:8742/  (Ctrl+C to stop)
 ```
 Open the printed address in a browser and the overview screen shown at the top appears. Leave out `--no-browser` and the browser opens automatically.
 
@@ -206,7 +206,6 @@ By default it accepts connections only on `127.0.0.1`. If you bind to another ad
 - A few texts are English only: the plain-text HTTP errors from the access guard (`Host '…' is not allowed. Start awsglance with --allow-host …`, `Unauthorized`, `Forbidden origin`). The command-line `--help` headings and the common argument errors follow `--lang`; an argparse reason the table does not know is shown in argparse's own wording. Event classification reasons that were stored as Korean sentences are mapped to codes and translated; a sentence the table does not know is shown as stored.
 - Set `AWSGLANCE_LANG=en` in scripts that compare the CLI's output text: on a Korean-language system the default is now Korean.
 - A folder given with `--data-dir` is set to owner-only (0700) permissions.
-- `--selftest` leaves its temporary folder behind (planned fix).
 
 ## Troubleshooting
 | Symptom | Cause | Fix |
